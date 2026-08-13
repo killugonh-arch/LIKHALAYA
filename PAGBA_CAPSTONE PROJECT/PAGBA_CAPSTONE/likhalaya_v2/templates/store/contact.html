@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Contact Us – Likhalaya{% endblock %}
+{% block nav_contact %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.contact-hero { background: linear-gradient(135deg, var(--teal), #2D7A73); padding: 48px 0; }
+.contact-card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.07); padding: 36px; }
+.info-item { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.info-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(30,95,90,.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.form-control { border-radius: 10px; border-color: #ddd; }
+.form-control:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(30,95,90,.12); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="contact-hero text-white text-center">
+  <div class="container">
+    <h2 class="fw-bold mb-2" style="font-family:'Playfair Display',serif;">Get In Touch</h2>
+    <p class="mb-0" style="color:rgba(255,255,255,.8);">We'd love to hear from you. Send us a message and we'll respond soon.</p>
+  </div>
+</div>
+
+<div class="container py-5">
+  <div class="row g-5">
+    <div class="col-lg-5">
+      <h5 class="fw-bold mb-4" style="color:var(--teal);">Contact Information</h5>
+      <div class="info-item">
+        <div class="info-icon"><i class="fas fa-map-marker-alt" style="color:var(--teal);"></i></div>
+        <div>
+          <div class="fw-bold mb-1">Location</div>
+          <div class="text-muted small" style="line-height:1.6;">Carigara District Jail<br>Bureau of Jail Management and Penology<br>Carigara, Leyte 6529</div>
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="info-icon"><i class="fas fa-envelope" style="color:var(--teal);"></i></div>
+        <div>
+          <div class="fw-bold mb-1">Email</div>
+          <div class="text-muted small">likhalaya@bjmp.gov.ph</div>
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="info-icon"><i class="fas fa-phone" style="color:var(--teal);"></i></div>
+        <div>
+          <div class="fw-bold mb-1">Phone</div>
+          <div class="text-muted small">(053) XXX-XXXX</div>
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="info-icon"><i class="fas fa-clock" style="color:var(--teal);"></i></div>
+        <div>
+          <div class="fw-bold mb-1">Office Hours</div>
+          <div class="text-muted small">Monday – Friday<br>8:00 AM – 5:00 PM</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="contact-card">
+        <h5 class="fw-bold mb-4" style="color:var(--teal);">Send a Message</h5>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold small">Your Name <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold small">Email Address <span class="text-danger">*</span></label>
+              {{ form.email }}
+              {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Subject <span class="text-danger">*</span></label>
+              {{ form.subject }}
+              {% if form.subject.errors %}<div class="text-danger small mt-1">{{ form.subject.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Message <span class="text-danger">*</span></label>
+              {{ form.message }}
+              {% if form.message.errors %}<div class="text-danger small mt-1">{{ form.message.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-gold btn-lg w-100 rounded-3">
+                <i class="fas fa-paper-plane  me-2"></i>Send Message
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

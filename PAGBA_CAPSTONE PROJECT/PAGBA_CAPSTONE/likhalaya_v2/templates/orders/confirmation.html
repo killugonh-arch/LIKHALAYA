@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Order Confirmed – Likhalaya{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <!-- Success Card -->
+      <div class="card border-0 shadow-sm rounded-4 p-5 text-center mb-4">
+        <div style="width:80px;height:80px;border-radius:50%;background:#eafaf1;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;">✅</div>
+        <h3 class="fw-bold mb-2" style="font-family:'Playfair Display',serif;color:var(--teal);">Order Confirmed!</h3>
+        <p class="text-muted mb-4">Thank you for supporting PDL artisans. Your order has been placed successfully.</p>
+
+        <div class="p-3 rounded-3 mb-4" style="background:#f8f6f2;">
+          <div class="text-muted small mb-1">Order Number</div>
+          <div class="fw-bold fs-4" style="color:var(--gold);">{{ order.order_number }}</div>
+        </div>
+
+        <div class="row g-3 text-start mb-4">
+          <div class="col-sm-6">
+            <div class="text-muted small">Full Name</div>
+            <div class="fw-semibold">{{ order.full_name }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted small">Email</div>
+            <div class="fw-semibold">{{ order.email }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted small">Payment Method</div>
+            <div class="fw-semibold">{{ order.get_payment_method_display }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted small">Status</div>
+            <span class="badge bg-warning text-dark">{{ order.get_status_display }}</span>
+          </div>
+          <div class="col-12">
+            <div class="text-muted small">Delivery Address</div>
+            <div class="fw-semibold">{{ order.address }}, {{ order.city }}, {{ order.province }}</div>
+          </div>
+        </div>
+
+        <!-- Order Items -->
+        {% for item in order.items.all %}
+        <div class="d-flex align-items-center gap-3 py-2 border-bottom text-start">
+          <div style="flex:1;min-width:0;">
+            <div class="fw-semibold small">
+              {{ item.product_name }}
+              {% if item.size_display %}<span class="badge bg-light text-dark border ms-1" style="font-size:10px;">{{ item.size_display }}</span>{% endif %}
+            </div>
+            <div class="text-muted" style="font-size:11px;">x{{ item.quantity }} @ ₱{{ item.product_price|floatformat:0|intcomma }}</div>
+          </div>
+          <div class="fw-bold small" style="color:var(--gold);">₱{{ item.item_total|floatformat:0|intcomma }}</div>
+        </div>
+        {% endfor %}
+
+        <div class="d-flex justify-content-between fw-bold mt-3 pt-2 border-top">
+          <span>Total Paid</span>
+          <span style="color:var(--gold);font-size:20px;">₱{{ order.total|floatformat:0|intcomma }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <a href="{% url 'orders:my_orders' %}" class="btn btn-teal px-4 rounded-3"><i class="fas fa-list me-1"></i>My Orders</a>
+        <a href="{% url 'store:shop' %}" class="btn btn-outline-secondary px-4 rounded-3"><i class="fas fa-store me-1"></i>Continue Shopping</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

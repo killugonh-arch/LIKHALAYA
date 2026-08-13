@@ -1,0 +1,167 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block sb_videos %}active{% endblock %}
+{% block title %}{{ title }} – Dashboard{% endblock %}
+
+{% block dash_content %}
+<style>
+.pform-header {
+  background: linear-gradient(120deg, var(--teal), #2D7A73);
+  border-radius: 18px; padding: 28px 32px; margin-bottom: 28px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  box-shadow: 0 8px 24px rgba(30,95,90,.18);
+}
+.pform-header h4 { color: #fff; font-family: 'Playfair Display', serif; font-size: 24px; margin: 0; }
+.pform-header p { color: rgba(255,255,255,.75); font-size: 13px; margin: 4px 0 0; }
+.pform-header .btn-back {
+  background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.28);
+  border-radius: 10px; font-size: 13px; padding: 8px 16px; transition: background .15s;
+}
+.pform-header .btn-back:hover { background: rgba(255,255,255,.24); color: #fff; }
+
+.pform-card {
+  background: #fff; border-radius: 16px; border: 1px solid #eee6d8;
+  box-shadow: 0 2px 14px rgba(30,25,10,.04); overflow: hidden;
+}
+.pform-card-header {
+  display: flex; align-items: center; gap: 10px; padding: 18px 24px;
+  border-bottom: 1px solid #f2ede1;
+}
+.pform-card-header .icon-badge {
+  width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; background: rgba(30,95,90,.09); color: var(--teal); font-size: 15px; flex-shrink: 0;
+}
+.pform-card-header h6 { margin: 0; font-weight: 700; font-size: 14.5px; color: #2a2a2a; }
+.pform-card-header .subtitle { font-size: 11.5px; color: #9a9a9a; margin-top: 1px; }
+.pform-card-body { padding: 22px 24px; }
+
+.pform-card-body label.form-label {
+  font-size: 12.5px; font-weight: 700; color: #555; letter-spacing: .2px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.pform-card-body .form-control {
+  border-radius: 10px; border: 1.5px solid #e6e0d3; font-size: 14px;
+  padding: 10px 14px; transition: border-color .15s, box-shadow .15s;
+}
+.pform-card-body .form-control:focus {
+  border-color: var(--teal); box-shadow: 0 0 0 3px rgba(30,95,90,.12);
+}
+.pform-card-body textarea.form-control { resize: vertical; min-height: 90px; }
+.pform-help { font-size: 11.5px; color: #9a9a9a; margin-top: 4px; }
+
+.pform-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border: 1px solid #eee6d8; border-radius: 12px; margin-bottom: 0;
+}
+.pform-toggle .title { font-weight: 700; font-size: 13px; color: #333; }
+.pform-toggle .desc { font-size: 11.5px; color: #999; margin-top: 1px; }
+.pform-toggle .form-check-input { width: 40px; height: 22px; cursor: pointer; flex-shrink: 0; margin: 0; }
+.pform-toggle .form-check-input:checked { background-color: var(--teal); border-color: var(--teal); }
+
+.pform-actions {
+  background: #fff; border-top: 1px solid #eee6d8; padding: 16px 24px;
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+.pform-actions .btn { border-radius: 10px; font-weight: 600; font-size: 13.5px; padding: 10px 24px; }
+.pform-actions .btn-gold { box-shadow: 0 4px 14px rgba(201,132,26,.3); }
+</style>
+
+<div class="dash-breadcrumb">
+  <a href="{% url 'dashboard:home' %}"><i class="fas fa-home"></i></a>
+  <span class="sep">/</span><a href="{% url 'dashboard:video_list' %}">Livelihood Videos</a>
+  <span class="sep">/</span><span class="current">{{ title }}</span>
+</div>
+
+<div class="pform-header">
+  <div>
+    <h4>{{ title }}</h4>
+    <p>Videos appear on the About page. Use a YouTube/Facebook link, or upload a file if you don't have one.</p>
+  </div>
+  <a href="{% url 'dashboard:video_list' %}" class="btn-back text-decoration-none">
+    <i class="fas fa-arrow-left me-1"></i>Back to Videos
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="pform-card mb-4">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-video"></i></div>
+          <div>
+            <h6>Video Details</h6>
+            <div class="subtitle">Title and short description</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="invalid-feedback d-block">{{ form.title.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-0">
+            <label class="form-label">Description</label>
+            {{ form.description }}
+          </div>
+        </div>
+      </div>
+
+      <div class="pform-card mb-4">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-link"></i></div>
+          <div>
+            <h6>Video Source</h6>
+            <div class="subtitle">Provide either a link OR an uploaded file</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          <div class="mb-3">
+            <label class="form-label">Video Link (YouTube / Facebook)</label>
+            {{ form.video_url }}
+            <div class="pform-help">Recommended — no storage limit and easy to update anytime.</div>
+            {% if form.video_url.errors %}<div class="invalid-feedback d-block">{{ form.video_url.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Or Upload Video File</label>
+            {{ form.video_file }}
+            <div class="pform-help">Only needed if you don't have a link above. Keep files under ~50MB.</div>
+          </div>
+          <div class="mb-0">
+            <label class="form-label">Thumbnail (optional)</label>
+            {{ form.thumbnail }}
+          </div>
+        </div>
+      </div>
+
+      <div class="pform-card mb-4">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-eye"></i></div>
+          <div>
+            <h6>Display</h6>
+            <div class="subtitle">Order and visibility on the About page</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          <div class="mb-3">
+            <label class="form-label">Order</label>
+            {{ form.order }}
+            <div class="pform-help">Lower numbers show first.</div>
+          </div>
+          <label class="pform-toggle" for="{{ form.is_active.id_for_label }}">
+            <span>
+              <span class="title d-block">Active</span>
+              <span class="desc d-block">Visible on the About page</span>
+            </span>
+            {{ form.is_active }}
+          </label>
+        </div>
+        <div class="pform-actions">
+          <a href="{% url 'dashboard:video_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-gold">Save Video</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

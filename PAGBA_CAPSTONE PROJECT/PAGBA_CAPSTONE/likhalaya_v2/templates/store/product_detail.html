@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ product.name }} – Likhalaya{% endblock %}
+
+{% block extra_css %}
+<style>
+.breadcrumb-bar { background: #f8f6f2; padding: 10px 0; font-size: 12px; }
+.product-gallery { border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+.product-gallery img { width: 100%; max-height: 460px; object-fit: cover; }
+.gallery-thumb { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: all .2s; }
+.gallery-thumb:hover, .gallery-thumb.active { border-color: var(--teal); }
+.badge-cat { background: rgba(30,95,90,.1); color: var(--teal); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+/* Detail-page carousel: arrows overlay the image (original size/behavior),
+   but stay hidden until the image area is hovered.
+   Scoped to #detailImageWrap only — the shared .mic-nav/.mic-frame rules
+   used by the size-picker modal are untouched. */
+#detailImageWrap .mic-frame {
+  min-height: 380px;
+  position: relative;
+}
+#detailImageWrap .mic-frame img {
+  height: 380px;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.08);
+}
+#detailImageWrap .mic-nav {
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.12);
+  opacity: 0;
+  transition: opacity .2s ease;
+  pointer-events: none;
+}
+#detailImageWrap .mic-frame:hover .mic-nav,
+#detailImageWrap .mic-nav:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.mic-dots { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+.mic-dot { width: 9px; height: 9px; border-radius: 50%; border: none; background: #ddd6c9; padding: 0; cursor: pointer; transition: all .2s; }
+.mic-dot:hover { background: #c9c0ad; }
+.mic-dot.active { background: var(--teal); width: 22px; border-radius: 5px; }
+.qty-btn { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid #ddd; background: #fff; font-weight: 700; transition: all .15s; }
+.qty-btn:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+.qty-input { width: 48px; text-align: center; border: 1.5px solid #ddd; border-radius: 8px; padding: 4px 0; font-weight: 700; }
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.qty-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.stock-badge { padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.artisan-card { background: linear-gradient(135deg, #0f3d39, #1E5F5A); border-radius: 14px; padding: 24px; color: #fff; }
+.related-card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); transition: all .2s; overflow: hidden; }
+.related-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'store:home' %}" class="text-muted text-decoration-none">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'store:shop' %}" class="text-muted text-decoration-none">Shop</a></li>
+        {% if product.category %}<li class="breadcrumb-item"><a href="{{ product.category.get_absolute_url }}" class="text-muted text-decoration-none">{{ product.category.name }}</a></li>{% endif %}
+        <li class="breadcrumb-item active" style="color:var(--teal);">{{ product.name }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="container pt-4">
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="backBtn" data-shop-url="{% url 'store:shop' %}"><i class="fas fa-arrow-left me-1"></i>Back</button>
+</div>
+
+<div class="container py-5">
+  <div class="row g-5">
+
+    <!-- PRODUCT IMAGE -->
+    <div class="col-lg-5">
+      {% if product.image or product.extra_images.all %}
+      <script type="application/json" id="imgs-detail">{{ product.images_by_size_json|safe }}</script>
+      <div id="detailImageWrap">
+        <div class="mic-frame">
+          <img id="detailImgMain" src="{{ product.image.url|default:'' }}" alt="{{ product.name }}">
+          <button type="button" class="mic-nav mic-prev" id="detailImgPrev" aria-label="Previous image">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button type="button" class="mic-nav mic-next" id="detailImgNext" aria-label="Next image">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <div class="mic-dots" id="detailImgDots"></div>
+      </div>
+      {% else %}
+      <div class="product-gallery mb-3">
+        <div style="height:360px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:80px;">🎨</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- PRODUCT DETAILS -->
+    <div class="col-lg-7">
+      <span class="badge-cat me-2">{{ product.category.name|default:"Artisan Craft" }}</span>
+
+      <h2 class="fw-bold mt-3 mb-2" style="font-family:'Playfair Display',serif;color:var(--teal);">{{ product.name }}</h2>
+
+      <!-- Price -->
+      <div class="mb-4">
+        <div style="font-size:32px;font-weight:800;color:var(--gold);">
+          {% if product.has_size_pricing %}₱{{ product.price_small|floatformat:0 }} – ₱{{ product.price_large|floatformat:0 }}{% else %}{{ product.price_display }}{% endif %}
+        </div>
+        {% if product.has_size_pricing %}<div class="text-muted small">Price varies by size — pick a size when you add to cart</div>{% endif %}
+      </div>
+
+      <!-- Stock -->
+      <div class="mb-4">
+        {% if product.in_stock %}
+        <span class="stock-badge" style="background:#eafaf1;color:#27ae60;"><i class="fas fa-check-circle me-1"></i>In Stock ({{ product.stock }} available)</span>
+        {% else %}
+        <span class="stock-badge" style="background:#fdedec;color:#e74c3c;"><i class="fas fa-times-circle me-1"></i>Out of Stock</span>
+        {% endif %}
+      </div>
+
+      <!-- Description -->
+      <div class="mb-4">
+        <h6 class="fw-bold mb-2">About this Product</h6>
+        <p class="text-muted" style="line-height:1.8;">{{ product.description }}</p>
+      </div>
+
+      <!-- Add to Cart / Buy Now -->
+      {% if product.in_stock %}
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <button type="button" class="btn btn-outline-secondary btn-lg px-4 rounded-3 js-open-size-modal"
+            data-url="{% url 'orders:cart_add' product.pk %}"
+            data-name="{{ product.name }}"
+            data-mode="cart"
+            data-has-sizes="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
+            data-stock="{{ product.stock }}"
+            data-price-s="{{ product.price_small }}"
+            data-price-m="{{ product.price_medium }}"
+            data-price-l="{{ product.price_large }}"
+            data-preselect-size="{{ selected_size_default|default:'M' }}"
+            data-images-id="imgs-detail"
+            id="detailAddToCartBtn">
+            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+          </button>
+          {% if user.is_authenticated %}
+          <button type="button" class="btn btn-gold btn-lg px-4 rounded-3 js-open-size-modal"
+            data-url="{% url 'orders:cart_add' product.pk %}"
+            data-name="{{ product.name }}"
+            data-mode="buy_now"
+            data-has-sizes="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
+            data-stock="{{ product.stock }}"
+            data-price-s="{{ product.price_small }}"
+            data-price-m="{{ product.price_medium }}"
+            data-price-l="{{ product.price_large }}"
+            data-preselect-size="{{ selected_size_default|default:'M' }}"
+            data-images-id="imgs-detail"
+            id="detailBuyNowBtn">
+            <i class="fas fa-bolt me-2"></i>Buy Now
+          </button>
+          {% else %}
+          <a href="{% url 'accounts:register' %}?next={{ product.get_absolute_url|urlencode }}" class="btn btn-gold btn-lg px-4 rounded-3">
+            <i class="fas fa-bolt me-2"></i>Buy Now
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <button class="btn btn-secondary btn-lg px-5 rounded-3 mb-4" disabled>Out of Stock</button>
+      {% endif %}
+
+      <!-- Trust badges -->
+      <div class="d-flex gap-4 flex-wrap">
+        <div class="text-muted small"><i class="fas fa-shield-alt me-1 text-success"></i>Secure checkout</div>
+        <div class="text-muted small"><i class="fas fa-truck me-1 text-primary"></i>Nationwide delivery</div>
+        <div class="text-muted small"><i class="fas fa-heart me-1 text-danger"></i>Supports PDL artisans</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Related Products -->
+  {% if related_products %}
+  <div class="mt-5">
+    <h5 class="fw-bold mb-4" style="font-family:'Playfair Display',serif;">You Might Also Like</h5>
+    <div class="row g-3">
+      {% for p in related_products %}
+      <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="related-card card h-100">
+          {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" style="height:160px;object-fit:cover;width:100%;">
+          {% else %}<div style="height:160px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:36px;">🎨</div>{% endif %}
+          <div class="card-body p-3">
+            <h6 class="fw-bold mb-1" style="font-size:13px;">{{ p.name }}</h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="product-price" style="font-size:14px;">{{ p.price_display }}</div>
+              <a href="{{ p.get_absolute_url }}" class="btn btn-sm btn-teal py-1 px-2" style="font-size:11px;">View</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% include 'partials/size_picker_modal.html' %}
+<script>
+// Product image carousel: image + left/right arrows + dots.
+// Shows every gallery photo (general + Small + Medium + Large) in one carousel,
+// deduplicated so a photo reused across sizes only appears once.
+(function() {
+  var wrap = document.getElementById('detailImageWrap');
+  if (!wrap) return;
+  var mainImg = document.getElementById('detailImgMain');
+  var prevBtn = document.getElementById('detailImgPrev');
+  var nextBtn = document.getElementById('detailImgNext');
+  var dotsWrap = document.getElementById('detailImgDots');
+  var dataEl = document.getElementById('imgs-detail');
+  var bySize = { general: [], S: [], M: [], L: [] };
+  try { bySize = dataEl ? (JSON.parse(dataEl.textContent) || bySize) : bySize; } catch (e) {}
+
+  var images = [];
+  var index = 0;
+
+  function allImagesDeduped() {
+    var combined = (bySize.general || []).concat(bySize.S || [], bySize.M || [], bySize.L || []);
+    var seen = {};
+    var result = [];
+    combined.forEach(function(url) {
+      if (!seen[url]) {
+        seen[url] = true;
+        result.push(url);
+      }
+    });
+    return result;
+  }
+
+  function renderDots() {
+    if (!dotsWrap) return;
+    dotsWrap.innerHTML = '';
+    if (images.length <= 1) return;
+    images.forEach(function(_, i) {
+      var dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'mic-dot' + (i === index ? ' active' : '');
+      dot.setAttribute('aria-label', 'Go to image ' + (i + 1));
+      dot.addEventListener('click', function() { goTo(i); });
+      dotsWrap.appendChild(dot);
+    });
+  }
+
+  function render() {
+    if (!images.length) return;
+    mainImg.src = images[index];
+    var multi = images.length > 1;
+    prevBtn.style.display = multi ? '' : 'none';
+    nextBtn.style.display = multi ? '' : 'none';
+    renderDots();
+  }
+
+  function goTo(i) {
+    index = (i + images.length) % images.length;
+    render();
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(index - 1); stopAutoplay(); startAutoplay(); });
+  nextBtn.addEventListener('click', function() { goTo(index + 1); stopAutoplay(); startAutoplay(); });
+
+  // Auto-swap image every 2 seconds; pauses while the user hovers the image.
+  var autoplayTimer = null;
+  function startAutoplay() {
+    if (images.length <= 1) return;
+    stopAutoplay();
+    autoplayTimer = setInterval(function() { goTo(index + 1); }, 2000);
+  }
+  function stopAutoplay() {
+    if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+  }
+  wrap.addEventListener('mouseenter', stopAutoplay);
+  wrap.addEventListener('mouseleave', startAutoplay);
+
+  images = allImagesDeduped();
+  render();
+  startAutoplay();
+})();
+
+// Back button
+document.getElementById('backBtn')?.addEventListener('click', function() {
+  if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+    history.back();
+  } else {
+    window.location = this.dataset.shopUrl;
+  }
+});
+</script>
+{% endblock %}

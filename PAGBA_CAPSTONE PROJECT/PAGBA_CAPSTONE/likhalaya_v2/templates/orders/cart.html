@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Shopping Cart – Likhalaya{% endblock %}
+
+{% block extra_css %}
+<style>
+.cart-page-header { border-bottom: 1px solid #ece5d8; padding-bottom: 16px; margin-bottom: 24px; }
+
+.cart-card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.05); overflow: hidden; }
+.cart-toolbar { background: var(--sand); }
+
+.cart-line { transition: background .15s; }
+.cart-line:hover { background: #fbfaf7; }
+.cart-line-img { width: 96px; height: 88px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+.cart-line-img-placeholder { width: 96px; height: 88px; border-radius: 10px; background: var(--sand); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+.cart-line-checkbox { width: 19px; height: 19px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+
+.cart-qty-group { display: inline-flex; align-items: center; border: 1.5px solid #e2ddd3; border-radius: 8px; overflow: hidden; }
+.cart-qty-btn { width: 32px; height: 32px; border: none; background: #fff; font-weight: 700; color: var(--teal); display: flex; align-items: center; justify-content: center; transition: background .15s; padding: 0; }
+.cart-qty-btn:hover:not(:disabled) { background: var(--sand); }
+.cart-qty-btn:disabled { color: #ccc; cursor: not-allowed; }
+.cart-qty-value { width: 40px; text-align: center; font-weight: 700; font-size: 14px; border-left: 1.5px solid #e2ddd3; border-right: 1.5px solid #e2ddd3; height: 32px; line-height: 32px; }
+
+.remove-line-btn { font-size: 11px; color: #b5473c; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border: none; background: none; padding: 0; }
+.remove-line-btn:hover { color: #8e2f26; text-decoration: underline; }
+
+.stock-warning { font-size: 11px; color: #c9841a; }
+
+/* ===== Order summary (sticky on desktop) ===== */
+.summary-card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+.summary-sticky-wrap { position: sticky; top: 96px; }
+.summary-row { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 10px; }
+.summary-grand-total { font-size: 20px; color: var(--gold); font-family: 'Poppins', sans-serif; font-weight: 800; }
+.free-shipping-alert { font-size: 12px; border-radius: 10px; }
+
+.empty-cart-icon { font-size: 72px; margin-bottom: 16px; }
+
+@media (max-width: 991.98px) {
+  .summary-sticky-wrap { position: static; }
+}
+
+@media (max-width: 575.98px) {
+  .cart-line { flex-wrap: wrap; }
+  .cart-line-img, .cart-line-img-placeholder { width: 72px; height: 66px; }
+  .cart-line .fw-bold { font-size: 15px !important; }
+  .cart-line-actions { width: 100%; justify-content: space-between !important; align-items: center !important; flex-direction: row !important; margin-top: 8px; }
+  .cart-qty-value { font-size: 13px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="cart-page-header">
+    <h3 class="fw-bold mb-1" style="font-family:'Playfair Display',serif;color:var(--teal);">Shopping Cart</h3>
+    <p class="text-muted small mb-0">{{ cart_items|length }} item{{ cart_items|length|pluralize }} in your cart</p>
+  </div>
+
+  {% if cart %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card cart-card">
+        {% if cart_items|length > 1 %}
+        <div class="d-flex align-items-center p-3 cart-toolbar">
+          <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline-secondary bg-white">
+            <i class="fas fa-check-square me-1"></i><span id="selectAllLabel">Deselect All</span>
+          </button>
+          <span class="text-muted small ms-3"><span id="selectedCount">{{ cart_items|length }}</span> of {{ cart_items|length }} selected</span>
+        </div>
+        {% endif %}
+
+        {% for item in cart_items %}
+        <div class="d-flex align-items-start gap-3 p-3 cart-line {% if not forloop.last %}border-bottom{% endif %}">
+          {% if cart_items|length > 1 %}
+          <input type="checkbox" class="form-check-input cart-item-checkbox cart-line-checkbox" data-item-key="{{ item.key }}" data-price="{{ item.total }}" checked>
+          {% else %}
+          <input type="checkbox" class="cart-item-checkbox d-none" data-item-key="{{ item.key }}" data-price="{{ item.total }}" checked>
+          {% endif %}
+
+          {% if item.product.image %}
+          <img src="{{ item.product.image.url }}" class="cart-line-img" alt="{{ item.product.name }}">
+          {% else %}
+          <div class="cart-line-img-placeholder">🎨</div>
+          {% endif %}
+
+          <div style="flex:1;min-width:0;">
+            <a href="{{ item.product.get_absolute_url }}" class="fw-bold text-decoration-none" style="font-size:16px;color:var(--charcoal);">{{ item.product.name }}</a>
+            <div class="text-muted small">
+              {{ item.product.category.name|default:"" }}
+              {% if item.size_display %}<span class="badge bg-light text-dark border ms-1">{{ item.size_display }}</span>{% endif %}
+            </div>
+            <div style="color:var(--gold);font-weight:700;margin-top:4px;font-size:16px;">₱{{ item.price|floatformat:0|intcomma }}</div>
+            {% if item.quantity >= item.product.stock %}
+            <div class="stock-warning mt-1"><i class="fas fa-exclamation-circle me-1"></i>Max available stock reached</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex flex-column align-items-end gap-3 cart-line-actions">
+            <form method="post" action="{% url 'orders:cart_remove' item.key %}">
+              {% csrf_token %}
+              <button type="submit" class="remove-line-btn"><i class="fas fa-trash"></i>Remove</button>
+            </form>
+            <form method="post" action="{% url 'orders:cart_update' item.key %}" class="cart-qty-group">
+              {% csrf_token %}
+              <button type="submit" name="action" value="decrease" class="cart-qty-btn" {% if item.quantity <= 1 %}disabled{% endif %} aria-label="Decrease quantity">−</button>
+              <span class="cart-qty-value">{{ item.quantity }}</span>
+              <button type="submit" name="action" value="increase" class="cart-qty-btn" {% if item.quantity >= item.product.stock %}disabled{% endif %} aria-label="Increase quantity">+</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="p-3 border-top">
+          <a href="{% url 'store:shop' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Continue Shopping</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="summary-sticky-wrap">
+        <form method="post" action="{% url 'orders:checkout_select' %}" id="checkoutSelectForm">
+          {% csrf_token %}
+          <div id="selectedItemsInputs"></div>
+          <div class="card summary-card p-4">
+            <h6 class="fw-bold mb-4">Order Summary</h6>
+
+            <div class="summary-row"><span class="text-muted">Subtotal</span><span class="fw-semibold" id="summarySubtotal">₱{{ cart_total|floatformat:0|intcomma }}</span></div>
+            <div class="summary-row">
+              <span class="text-muted">Shipping</span>
+              <span class="fw-semibold {% if shipping_fee == 0 %}text-success{% endif %}" id="summaryShipping">
+                {% if shipping_fee == 0 %}FREE{% else %}₱{{ shipping_fee|floatformat:0 }}.00{% endif %}
+              </span>
+            </div>
+
+            <div class="alert alert-info py-2 mb-2 free-shipping-alert {% if cart_total < 500 %}d-none{% endif %}" id="freeShippingAlert">
+              <i class="fas fa-info-circle me-1"></i><span id="freeShippingText">Orders of ₱500 or more have a ₱50 shipping fee.</span>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between align-items-center fw-bold mb-4">
+              <span>Grand Total</span>
+              <span class="summary-grand-total" id="summaryGrandTotal">₱{{ cart_total|add:shipping_fee|floatformat:0|intcomma }}</span>
+            </div>
+
+            <button type="submit" class="btn btn-gold btn-lg w-100 rounded-3" id="checkoutSubmitBtn">
+              <i class="fas fa-credit-card me-2"></i>Proceed to Checkout
+            </button>
+
+            <div class="d-flex align-items-center justify-content-center gap-2 mt-3 text-muted" style="font-size:11px;">
+              <i class="fas fa-lock"></i><span>Secure checkout</span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <div class="empty-cart-icon">🛒</div>
+    <h4 class="fw-bold text-muted mb-2">Your cart is empty</h4>
+    <p class="text-muted small mb-4">Discover handcrafted products from our PDL artisans.</p>
+    <a href="{% url 'store:shop' %}" class="btn btn-teal btn-lg px-5 rounded-3">Start Shopping</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if cart %}
+<script>
+(function () {
+  const checkboxes = Array.from(document.querySelectorAll('.cart-item-checkbox'));
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const selectAllLabel = document.getElementById('selectAllLabel');
+  const selectedCountEl = document.getElementById('selectedCount');
+  const inputsContainer = document.getElementById('selectedItemsInputs');
+  const checkoutForm = document.getElementById('checkoutSelectForm');
+  const checkoutBtn = document.getElementById('checkoutSubmitBtn');
+
+  const subtotalEl = document.getElementById('summarySubtotal');
+  const shippingEl = document.getElementById('summaryShipping');
+  const grandTotalEl = document.getElementById('summaryGrandTotal');
+  const freeShippingAlert = document.getElementById('freeShippingAlert');
+  const freeShippingText = document.getElementById('freeShippingText');
+
+  const peso = (n) => '₱' + Math.round(n).toLocaleString('en-US');
+
+  function recalc() {
+    let subtotal = 0;
+    let selectedCount = 0;
+    checkboxes.forEach(function (cb) {
+      if (cb.checked) {
+        subtotal += parseFloat(cb.dataset.price || '0');
+        selectedCount += 1;
+      }
+    });
+
+    const shipping = subtotal >= 500 ? 50 : 0;
+    const grandTotal = subtotal + shipping;
+
+    subtotalEl.textContent = peso(subtotal);
+    if (shipping === 0) {
+      shippingEl.textContent = 'FREE';
+      shippingEl.classList.add('text-success');
+    } else {
+      shippingEl.textContent = peso(shipping);
+      shippingEl.classList.remove('text-success');
+    }
+    grandTotalEl.textContent = peso(grandTotal);
+
+    if (subtotal >= 500) {
+      freeShippingAlert.classList.remove('d-none');
+      freeShippingText.textContent = 'Orders of ₱500 or more have a ₱50 shipping fee.';
+    } else {
+      freeShippingAlert.classList.add('d-none');
+    }
+
+    if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+    checkoutBtn.disabled = selectedCount === 0;
+    checkoutBtn.classList.toggle('disabled', selectedCount === 0);
+
+    if (selectAllLabel) {
+      selectAllLabel.textContent = selectedCount === checkboxes.length ? 'Deselect All' : 'Select All';
+    }
+  }
+
+  checkboxes.forEach(function (cb) {
+    cb.addEventListener('change', recalc);
+  });
+
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', function () {
+      const shouldSelectAll = selectAllLabel.textContent === 'Select All';
+      checkboxes.forEach(function (cb) { cb.checked = shouldSelectAll; });
+      recalc();
+    });
+  }
+
+  checkoutForm.addEventListener('submit', function () {
+    inputsContainer.innerHTML = '';
+    checkboxes.forEach(function (cb) {
+      if (cb.checked) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_items';
+        input.value = cb.dataset.itemKey;
+        inputsContainer.appendChild(input);
+      }
+    });
+  });
+
+  recalc();
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load humanize %}
+{% block page_title %}Product Detail{% endblock %}
+{% block sb_products %}active{% endblock %}
+{% block title %}{{ product.name }} – Likhalaya Dashboard{% endblock %}
+
+{% block dash_content %}
+<div class="dash-breadcrumb">
+  <a href="{% url 'dashboard:home' %}"><i class="fas fa-home"></i></a>
+  <span class="sep">/</span><a href="{% url 'dashboard:product_list' %}">Products</a>
+  <span class="sep">/</span><span class="current">{{ product.name }}</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0" style="color:var(--teal);">Product Detail</h4>
+  <a href="{% url 'dashboard:product_list' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 py-3 px-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold mb-1">{{ product.name }}</h5>
+          </div>
+          <div class="d-flex gap-2">
+            <span class="badge {% if product.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if product.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body px-4 py-4">
+        <div class="row g-4">
+          <div class="col-sm-4">
+            {% if product.image %}
+            <img src="{{ product.image.url }}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;" alt="{{ product.name }}">
+            {% else %}
+            <div style="width:100%;aspect-ratio:1;border-radius:12px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:40px;">🎨</div>
+            {% endif %}
+          </div>
+          <div class="col-sm-8">
+            <div class="mb-3">
+              <div class="text-muted small mb-1">Category</div>
+              <span class="badge bg-light text-dark border">{{ product.category.name|default:"—" }}</span>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-6">
+                <div class="text-muted small mb-1">Price</div>
+                <div class="fw-bold" style="color:var(--gold);">{{ product.price_display }}</div>
+              </div>
+              <div class="col-6">
+                <div class="text-muted small mb-1">Stock</div>
+                <span class="badge {% if product.stock == 0 %}bg-danger{% elif product.stock <= 5 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                  {{ product.stock }}
+                </span>
+              </div>
+            </div>
+            {% if product.has_size_pricing %}
+            <div class="mb-3">
+              <div class="text-muted small mb-2">Sizes &amp; Pricing</div>
+              <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-light text-dark border px-2 py-2">Small &nbsp;₱{{ product.price_small|floatformat:0 }}</span>
+                <span class="badge bg-light text-dark border px-2 py-2">Medium &nbsp;₱{{ product.price_medium|floatformat:0 }}</span>
+                <span class="badge bg-light text-dark border px-2 py-2">Large &nbsp;₱{{ product.price_large|floatformat:0 }}</span>
+              </div>
+            </div>
+            {% endif %}
+            <div class="mb-3">
+              <div class="text-muted small mb-1">Description</div>
+              <div style="white-space:pre-wrap;line-height:1.7;color:var(--dm-text,#333);font-size:14px;">{{ product.description|default:"No description provided." }}</div>
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="text-muted small mb-1">Added</div>
+                <div style="font-size:13px;">{{ product.created_at|date:"F d, Y" }}</div>
+              </div>
+              <div class="col-6">
+                <div class="text-muted small mb-1">Last Updated</div>
+                <div style="font-size:13px;">{{ product.updated_at|date:"F d, Y" }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if gallery_by_size.General or gallery_by_size.Small or gallery_by_size.Medium or gallery_by_size.Large %}
+      <div class="card-body px-4 pb-4 pt-0">
+        <div class="text-muted small mb-2 fw-bold">Photos by Size</div>
+        <div class="row g-3">
+          {% for label, imgs in gallery_by_size.items %}
+          {% if imgs %}
+          <div class="col-sm-6 col-md-3">
+            <div class="text-muted small mb-2">{{ label }}{% if label == 'General' %} (all sizes){% endif %}</div>
+            <div class="d-flex flex-wrap gap-2">
+              {% for img in imgs %}
+              <img src="{{ img.image.url }}" alt="{{ img.caption }}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #eee;">
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="card-footer bg-white border-0 px-4 py-3 d-flex justify-content-end align-items-center gap-2">
+        <a href="{{ product.get_absolute_url }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-external-link-alt me-1"></i>View in Shop
+        </a>
+        <a href="{% url 'dashboard:product_edit' product.pk %}" class="btn btn-teal btn-sm">
+          <i class="fas fa-pencil-alt me-1"></i>Edit
+        </a>
+        {% if request.user.is_admin_user %}
+        <button type="button" class="btn btn-outline-danger fw-semibold px-4" data-bs-toggle="modal" data-bs-target="#deleteProductModal">
+          <i class="fas fa-box-archive me-1"></i>Archive
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">Archive Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0">Move <strong>{{ product.name }}</strong> to the Archive? You can restore it anytime from the Archive page.</p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No, keep it</button>
+        <form method="post" action="{% url 'dashboard:product_delete' product.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Yes, archive</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

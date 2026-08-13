@@ -1,0 +1,126 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% block page_title %}Messages{% endblock %}
+{% block sb_messages %}active{% endblock %}
+{% block title %}Messages – Dashboard{% endblock %}
+
+{% block dash_content %}
+<div class="dash-breadcrumb">
+  <a href="{% url 'dashboard:home' %}"><i class="fas fa-home"></i></a>
+  <span class="sep">/</span><span class="current">Messages</span>
+</div>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <h4 class="fw-bold mb-0" style="color:var(--teal);">Contact Messages</h4>
+  <span class="badge bg-danger" style="font-size:13px;">{{ new_messages_count }} unread</span>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-sm-5"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search name, email, subject…" value="{{ search }}"></div>
+      <div class="col-sm-3">
+        <select name="read" class="form-select form-select-sm">
+          <option value="">All Messages</option>
+          <option value="false" {% if read_filter == 'false' %}selected{% endif %}>Unread</option>
+          <option value="true" {% if read_filter == 'true' %}selected{% endif %}>Read</option>
+        </select>
+      </div>
+      <div class="col-sm-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-teal flex-fill">Search</button>
+        <a href="{% url 'dashboard:message_list' %}" class="btn btn-sm btn-outline-secondary flex-fill">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="list-group list-group-flush">
+    {% for msg in messages_list %}
+    {% url 'dashboard:message_detail' msg.pk as msg_detail_url %}
+    <div class="list-group-item list-group-item-action d-flex align-items-start gap-3 py-3 px-4 msg-row {% if not msg.is_read %}border-start border-4{% endif %}"
+         style="cursor:pointer;{% if not msg.is_read %}border-left-color:var(--gold)!important;background:var(--dm-msg-unread-bg,#fffdf8);{% endif %}"
+         data-href="{{ msg_detail_url }}">
+      <div style="width:42px;height:42px;border-radius:50%;background:{% if msg.is_read %}var(--dm-msg-avatar-read,#e8e8e8){% else %}var(--gold){% endif %};display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;flex-shrink:0;">
+        {{ msg.name|first|upper }}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
+          <div>
+            <span class="fw-bold" style="font-size:13px;">{{ msg.name }}</span>
+            {% if not msg.is_read %}<span class="badge bg-warning text-dark ms-2" style="font-size:10px;">NEW</span>{% endif %}
+            <div class="text-muted" style="font-size:11px;">{{ msg.email }}</div>
+          </div>
+          <small class="text-muted">{{ msg.created_at|date:"M d, Y H:i" }}</small>
+        </div>
+        <div class="fw-semibold small mt-1">{{ msg.subject }}</div>
+        <div class="text-muted" style="font-size:12px;">{{ msg.message|truncatechars:80 }}</div>
+      </div>
+      <div class="msg-delete-form">
+        <button type="button" class="btn-icon-action btn-icon-delete" title="Delete"
+                data-bs-toggle="modal" data-bs-target="#deleteMsgModal"
+                data-delete-url="{% url 'dashboard:message_delete' msg.pk %}"
+                data-msg-name="{{ msg.name }}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-5 text-muted">
+      <i class="fas fa-envelope-open fa-2x mb-3 d-block opacity-25"></i>No messages found.
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-white border-0 d-flex justify-content-end py-3 px-4">
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a></li>{% endif %}
+      {% for n in page_obj.paginator.page_range %}
+      <li class="page-item {% if n == page_obj.number %}active{% endif %}"><a class="page-link" href="?page={{ n }}">{{ n }}</a></li>
+      {% endfor %}
+      {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteMsgModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" style="color:var(--teal);">Delete Message</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete the message from <strong id="deleteMsgName"></strong>? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteMsgForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.msg-row').forEach(function (row) {
+  row.addEventListener('click', function (e) {
+    if (!e.target.closest('.msg-delete-form')) {
+      window.location = row.dataset.href;
+    }
+  });
+});
+
+var deleteMsgModal = document.getElementById('deleteMsgModal');
+deleteMsgModal.addEventListener('show.bs.modal', function (event) {
+  var btn = event.relatedTarget;
+  var url = btn.getAttribute('data-delete-url');
+  var name = btn.getAttribute('data-msg-name');
+  document.getElementById('deleteMsgForm').setAttribute('action', url);
+  document.getElementById('deleteMsgName').textContent = name;
+});
+</script>
+{% endblock %}

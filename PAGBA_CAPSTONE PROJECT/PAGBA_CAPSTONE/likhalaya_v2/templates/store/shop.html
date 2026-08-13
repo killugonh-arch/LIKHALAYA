@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Shop – Likhalaya{% endblock %}
+{% block nav_shop %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.shop-hero { background: linear-gradient(135deg, var(--teal), #2D7A73); padding: 40px 0; }
+.filter-sidebar { position: sticky; top: 88px; }
+.filter-card { border: none; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+.filter-badge { background: var(--teal); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+.shop-product-card { position: relative; border: none; border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.05); transition: all .22s; overflow: hidden; }
+.shop-product-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.1); }
+.shop-product-card .prod-img { height: 210px; object-fit: cover; width: 100%; }
+.shop-product-card .img-placeholder { height: 210px; background: var(--sand); display: flex; align-items: center; justify-content: center; font-size: 52px; }
+.sort-bar { background: #fff; border-radius: 10px; padding: 10px 16px; border: 1px solid #ece5d8; }
+.price-range { width: 100%; }
+.shop-product-card .carousel-control-prev,
+.shop-product-card .carousel-control-next { opacity: 0; transition: opacity .2s; }
+.shop-product-card:hover .carousel-control-prev,
+.shop-product-card:hover .carousel-control-next { opacity: .8; }
+.shop-product-card .carousel-indicators { position: absolute; bottom: 4px; }
+.shop-product-card .carousel-indicators [data-bs-target] { background-color: #fff; opacity: .6; }
+.shop-product-card .carousel-indicators .active { opacity: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shop-hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-12 text-white">
+        <h2 class="fw-bold mb-1" style="font-family:'Playfair Display',serif;">PDL Artisan Shop</h2>
+        <p class="mb-0" style="color:rgba(255,255,255,.75);font-size:14px;">Handcrafted goods from Carigara District Jail</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="row g-4">
+
+    <!-- SIDEBAR FILTERS -->
+    <div class="col-lg-3">
+      <div class="filter-sidebar">
+        <div class="filter-card card p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0">Filters</h6>
+            <a href="{% url 'store:shop' %}" class="text-muted" style="font-size:12px;">Clear all</a>
+          </div>
+
+          <form method="get" id="filterForm">
+            {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+
+            <div class="mb-3">
+              <div class="fw-semibold small mb-2">Category</div>
+              {% for cat in categories %}
+              <div class="form-check mb-1">
+                <input type="radio" name="category" value="{{ cat.slug }}" class="form-check-input" id="cat{{ cat.pk }}"
+                       {% if selected_category == cat.slug %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label d-flex justify-content-between" for="cat{{ cat.pk }}" style="font-size:13px;">
+                  <span>{{ cat.name }}</span>
+                  <span class="filter-badge">{{ cat.products.count }}</span>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCT GRID -->
+    <div class="col-lg-9">
+
+      <!-- Sort & Count bar -->
+      <div class="sort-bar d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-muted small">
+          Showing <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong> of <strong>{{ paginator.count }}</strong> products
+          {% if search_query %}for "<strong>{{ search_query }}</strong>"{% endif %}
+          {% if selected_category %}in <strong>{{ selected_category|title }}</strong>{% endif %}
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="text-muted small">View:</span>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="viewGrid" title="Grid"><i class="fas fa-th"></i></button>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="viewList" title="List"><i class="fas fa-list"></i></button>
+        </div>
+      </div>
+
+      <!-- Product Grid -->
+      <div class="row g-3" id="productGrid">
+        {% for product in products %}
+        <div class="col-sm-6 col-xl-4 product-item">
+          <div class="shop-product-card card h-100">
+            <div class="position-relative">
+              {% if product.image or product.extra_images.all %}
+              <div id="cardCarousel{{ product.pk }}" class="carousel slide" data-bs-ride="false">
+                <div class="carousel-inner">
+                  {% if product.image %}
+                  <div class="carousel-item active">
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="prod-img">
+                  </div>
+                  {% endif %}
+                  {% for img in product.extra_images.all %}
+                  <div class="carousel-item {% if not product.image and forloop.first %}active{% endif %}">
+                    <img src="{{ img.image.url }}" alt="{{ img.caption|default:product.name }}" class="prod-img">
+                  </div>
+                  {% endfor %}
+                </div>
+                {% if product.extra_images.all %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#cardCarousel{{ product.pk }}" data-bs-slide="prev" style="width:15%;z-index:2;">
+                  <span class="carousel-control-prev-icon" style="width:16px;height:16px;"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#cardCarousel{{ product.pk }}" data-bs-slide="next" style="width:15%;z-index:2;">
+                  <span class="carousel-control-next-icon" style="width:16px;height:16px;"></span>
+                </button>
+                <div class="carousel-indicators" style="margin-bottom:6px;">
+                  {% if product.image %}<button type="button" data-bs-target="#cardCarousel{{ product.pk }}" data-bs-slide-to="0" class="active" style="width:6px;height:6px;border-radius:50%;"></button>{% endif %}
+                  {% for img in product.extra_images.all %}
+                  <button type="button" data-bs-target="#cardCarousel{{ product.pk }}" data-bs-slide-to="{% if product.image %}{{ forloop.counter }}{% else %}{{ forloop.counter0 }}{% endif %}" {% if not product.image and forloop.first %}class="active"{% endif %} style="width:6px;height:6px;border-radius:50%;"></button>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              {% else %}
+              <div class="img-placeholder"><span>🎨</span></div>
+              {% endif %}
+              {% if not product.in_stock %}
+              <div class="position-absolute top-0 end-0 m-2" style="z-index:3;">
+                <span class="badge bg-danger" style="font-size:9px;">OUT OF STOCK</span>
+              </div>
+              {% endif %}
+            </div>
+            <div class="card-body p-3 d-flex flex-column">
+              {% if product.image or product.extra_images.all %}
+              <script type="application/json" id="imgs-{{ product.pk }}">{{ product.images_by_size_json|safe }}</script>
+              {% endif %}
+              <div class="product-tag mb-1">{{ product.category.name|default:"Craft" }}</div>
+              <h6 class="fw-bold mb-1" style="font-size:13px;flex:1;">
+                <a href="{{ product.get_absolute_url }}" class="stretched-link text-decoration-none" style="color:inherit;">{{ product.name }}</a>
+              </h6>
+              <p class="text-muted mb-2" style="font-size:12px;line-height:1.5;">{{ product.description|truncatechars:65 }}</p>
+              <div class="d-flex align-items-center justify-content-between mt-auto">
+                <div class="product-price">{{ product.price_display }}</div>
+                <div class="d-flex gap-2 position-relative" style="z-index:2;">
+                  {% if product.in_stock %}
+                  <button type="button" class="btn btn-outline-secondary py-2 px-3 js-open-size-modal" style="font-size:15px;" title="Add to cart"
+                    data-url="{% url 'orders:cart_add' product.pk %}"
+                    data-name="{{ product.name }}"
+                    data-mode="cart"
+                    data-has-sizes="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
+                    data-stock="{{ product.stock }}"
+                    data-price-s="{{ product.price_small }}"
+                    data-price-m="{{ product.price_medium }}"
+                    data-price-l="{{ product.price_large }}"
+                    data-images-id="imgs-{{ product.pk }}">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                  {% if user.is_authenticated %}
+                  <button type="button" class="btn btn-gold fw-bold py-2 px-3 js-open-size-modal" style="font-size:14px;"
+                    data-url="{% url 'orders:cart_add' product.pk %}"
+                    data-name="{{ product.name }}"
+                    data-mode="buy_now"
+                    data-has-sizes="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
+                    data-stock="{{ product.stock }}"
+                    data-price-s="{{ product.price_small }}"
+                    data-price-m="{{ product.price_medium }}"
+                    data-price-l="{{ product.price_large }}"
+                    data-images-id="imgs-{{ product.pk }}">
+                    Buy Now
+                  </button>
+                  {% else %}
+                  <a href="{% url 'accounts:register' %}?next={{ product.get_absolute_url|urlencode }}" class="btn btn-gold fw-bold py-2 px-3" style="font-size:14px;">Buy Now</a>
+                  {% endif %}
+                  {% else %}
+                  <button class="btn btn-secondary py-2 px-3" disabled style="font-size:14px;">Sold Out</button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+          <div class="text-center py-5">
+            <div style="font-size:56px;margin-bottom:16px;">🔍</div>
+            <h5 class="fw-bold text-muted">No products found</h5>
+            <p class="text-muted small">Try adjusting your filters or search term.</p>
+            <a href="{% url 'store:shop' %}" class="btn btn-teal px-4 mt-2">Browse All Products</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+      <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link rounded-start-3" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&category={{ selected_category }}&sort={{ sort }}">‹ Prev</a></li>
+          {% endif %}
+          {% for n in page_obj.paginator.page_range %}
+          {% if n >= page_obj.number|add:'-2' and n <= page_obj.number|add:'2' %}
+          <li class="page-item {% if n == page_obj.number %}active{% endif %}">
+            <a class="page-link" href="?page={{ n }}&q={{ search_query }}&category={{ selected_category }}&sort={{ sort }}">{{ n }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link rounded-end-3" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&category={{ selected_category }}&sort={{ sort }}">Next ›</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% include 'partials/size_picker_modal.html' %}
+<script>
+document.getElementById('viewList').addEventListener('click', function() {
+  document.querySelectorAll('.product-item').forEach(el => {
+    el.className = 'col-12 product-item';
+    const card = el.querySelector('.shop-product-card');
+    card.classList.add('flex-row');
+    const img = el.querySelector('.prod-img,.img-placeholder');
+    if (img) { img.style.width = '160px'; img.style.height = '120px'; img.style.flexShrink = 0; }
+  });
+});
+document.getElementById('viewGrid').addEventListener('click', function() {
+  document.querySelectorAll('.product-item').forEach(el => {
+    el.className = 'col-sm-6 col-xl-4 product-item';
+    const card = el.querySelector('.shop-product-card');
+    card.classList.remove('flex-row');
+    const img = el.querySelector('.prod-img,.img-placeholder');
+    if (img) { img.style.width = ''; img.style.height = ''; img.style.flexShrink = ''; }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load humanize %}
+{% block page_title %}Reports{% endblock %}
+{% block sb_reports %}active{% endblock %}
+{% block title %}Reports – Dashboard{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+/* =========================================================
+   Reuses the approved Likhalaya design-system tokens and
+   components (ds-kpi-card, dash-panel, ds-table, ds-badge,
+   ds-btn) — same component set as the Dashboard Home and
+   Orders pages, kept local to this template only where the
+   shared design-system.css/dashboard.css files aren't yet
+   wired into this build. No new visual language introduced.
+   ========================================================= */
+:root {
+  --brand-green: #0F6B4F;
+  --brand-green-hover: #0C5940;
+  --brand-green-light: #E6F4EF;
+  --surface-white: #FFFFFF;
+  --surface-subtle: #F9FAF9;
+  --border: #E4E7E4;
+  --text-primary: #1A1D1B;
+  --text-secondary: #5B615D;
+  --text-muted: #9AA09C;
+  --success: #0F6B4F;
+  --warning: #B7791F;
+  --warning-bg: #FBF3E4;
+  --danger: #C0362C;
+  --danger-bg: #FBEAE8;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(16,24,20,0.06);
+  --shadow-md: 0 4px 12px rgba(16,24,20,0.08);
+  --shadow-lg: 0 12px 32px rgba(16,24,20,0.12);
+  --space-1: 4px; --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-5: 32px; --space-6: 48px;
+  --transition: 150ms ease;
+}
+
+.ds-breadcrumb { font-size: 12px; color: var(--text-muted); margin-bottom: var(--space-3); display: flex; align-items: center; gap: 6px; }
+.ds-breadcrumb a { color: var(--text-muted); text-decoration: none; transition: color var(--transition); }
+.ds-breadcrumb a:hover { color: var(--brand-green); }
+.ds-breadcrumb .current { color: var(--text-primary); font-weight: 600; }
+.ds-breadcrumb .sep { color: var(--border); }
+
+.dash-greeting-title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.dash-greeting-sub { font-size: 13px; color: var(--text-muted); }
+
+.ds-btn { font-size: 14px; font-weight: 600; border-radius: var(--radius-sm); padding: 10px 16px; border: none; transition: background var(--transition), box-shadow var(--transition); cursor: pointer; display: inline-flex; align-items: center; }
+.ds-btn-primary { background: var(--brand-green); color: #fff; }
+.ds-btn-primary:hover { background: var(--brand-green-hover); box-shadow: var(--shadow-sm); color: #fff; }
+.ds-btn-secondary { background: var(--surface-white); color: var(--text-primary); border: 1px solid var(--border); }
+.ds-btn-secondary:hover { background: var(--surface-subtle); color: var(--text-primary); }
+.ds-btn-sm { padding: 8px 12px; font-size: 13px; }
+.ds-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ds-kpi-card { background: var(--surface-white); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-sm); transition: box-shadow var(--transition); height: 100%; }
+.ds-kpi-card:hover { box-shadow: var(--shadow-md); }
+.ds-kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.ds-kpi-card .kpi-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.15; margin-top: 4px; }
+.ds-kpi-card .kpi-delta { font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--text-muted); }
+
+.dash-kpi-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.icon-revenue { background: var(--brand-green-light); color: var(--brand-green); }
+.icon-orders  { background: #E8F1FB; color: #2980B9; }
+.icon-avg     { background: var(--warning-bg); color: var(--warning); }
+.icon-best    { background: #F1E9FB; color: #6E3FA8; }
+
+.dash-panel { background: var(--surface-white); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+.dash-panel-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); gap: var(--space-2); flex-wrap: wrap; }
+.dash-panel-header h6 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.dash-panel-body { padding: var(--space-3); }
+.dash-panel-empty { text-align: center; padding: var(--space-4); color: var(--text-muted); font-size: 13px; }
+.dash-panel-empty i { color: var(--brand-green); margin-right: 4px; }
+
+.ds-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.ds-badge-neutral { background: var(--surface-subtle); color: var(--text-secondary); }
+.ds-badge-success { background: var(--brand-green-light); color: var(--brand-green); }
+.ds-badge-warning { background: var(--warning-bg); color: var(--warning); }
+.ds-badge-danger { background: var(--danger-bg); color: var(--danger); }
+
+.ds-table { width: 100%; border-collapse: collapse; background: var(--surface-white); border-radius: var(--radius-md); overflow: hidden; }
+.ds-table thead th { background: var(--surface-subtle); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); padding: 12px var(--space-3); text-align: left; border-bottom: 1px solid var(--border); }
+.ds-table tbody td { padding: 14px var(--space-3); font-size: 13.5px; color: var(--text-primary); border-bottom: 1px solid var(--border); }
+.ds-table tbody tr { transition: background var(--transition); }
+.ds-table tbody tr:hover { background: var(--surface-subtle); }
+.ds-table tbody tr:last-child td { border-bottom: none; }
+
+.ds-empty-state { text-align: center; padding: var(--space-6) var(--space-4); color: var(--text-muted); }
+.ds-empty-state .icon { font-size: 36px; color: var(--border); margin-bottom: var(--space-3); }
+.ds-empty-state .title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.ds-empty-state .desc { font-size: 13px; }
+
+/* Reports-specific: period filter + export bar */
+.reports-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.period-tabs { display: inline-flex; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; gap: 2px; }
+.period-tabs a { padding: 7px 14px; font-size: 13px; font-weight: 600; border-radius: 5px; color: var(--text-secondary); text-decoration: none; transition: all var(--transition); white-space: nowrap; }
+.period-tabs a:hover { color: var(--brand-green); }
+.period-tabs a.active { background: var(--brand-green); color: #fff; box-shadow: var(--shadow-sm); }
+.reports-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+@media (max-width: 991px) {
+  .dash-greeting-title { font-size: 18px; }
+  .reports-toolbar { flex-direction: column; align-items: stretch; }
+  .reports-actions { justify-content: flex-start; }
+}
+
+@media print {
+  .ds-sidebar, .ds-navbar, .period-tabs, .reports-actions, .ds-breadcrumb { display: none !important; }
+  .dash-panel { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
+</style>
+{% endblock %}
+
+{% block dash_content %}
+<nav class="ds-breadcrumb" aria-label="Breadcrumb">
+  <a href="{% url 'dashboard:home' %}"><i class="fas fa-home"></i></a>
+  <span class="sep">/</span><span class="current" aria-current="page">Reports</span>
+</nav>
+
+<div class="reports-toolbar">
+  <div>
+    <h1 class="dash-greeting-title">Sales Reports</h1>
+    <p class="dash-greeting-sub mb-0">Executive summary for {{ period_label }}</p>
+  </div>
+  <div class="reports-actions">
+    <div class="period-tabs" role="tablist" aria-label="Report period">
+      <a href="?period=all" class="{% if period == 'all' %}active{% endif %}">All Time</a>
+      <a href="?period=last_month" class="{% if period == 'last_month' %}active{% endif %}">Last Month</a>
+      <a href="?period=this_month" class="{% if period == 'this_month' %}active{% endif %}">This Month</a>
+    </div>
+    {% if request.user.is_admin_user %}
+    <a href="{% url 'dashboard:reports_export_excel' %}?period={{ period }}" class="ds-btn ds-btn-primary ds-btn-sm">
+      <i class="fas fa-file-excel me-2"></i>Export Excel
+    </a>
+    {% endif %}
+    <button onclick="window.print()" class="ds-btn ds-btn-secondary ds-btn-sm">
+      <i class="fas fa-print me-2"></i>Print
+    </button>
+  </div>
+</div>
+
+<!-- Executive Summary KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ds-kpi-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value">₱{{ total_revenue|floatformat:0|intcomma }}</div>
+          <div class="kpi-delta">from delivered orders</div>
+        </div>
+        <div class="dash-kpi-icon icon-revenue"><i class="fas fa-peso-sign"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ds-kpi-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Total Orders</div>
+          <div class="kpi-value">{{ total_orders }}</div>
+          <div class="kpi-delta">{{ period_label }}</div>
+        </div>
+        <div class="dash-kpi-icon icon-orders"><i class="fas fa-shopping-bag"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ds-kpi-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Avg Order Value</div>
+          <div class="kpi-value">₱{{ avg_order|floatformat:0|intcomma }}</div>
+          <div class="kpi-delta">per order</div>
+        </div>
+        <div class="dash-kpi-icon icon-avg"><i class="fas fa-chart-line"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ds-kpi-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Best Seller</div>
+          <div class="kpi-value" style="font-size:16px; line-height:1.3;">
+            {% with top=top_products|first %}
+              {% if top %}{{ top.product_name|truncatechars:20 }}{% else %}—{% endif %}
+            {% endwith %}
+          </div>
+          <div class="kpi-delta">
+            {% with top=top_products|first %}
+              {% if top %}{{ top.units }} units sold{% else %}No sales yet{% endif %}
+            {% endwith %}
+          </div>
+        </div>
+        <div class="dash-kpi-icon icon-best"><i class="fas fa-crown"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="dash-panel h-100">
+      <div class="dash-panel-header">
+        <h6>Revenue Trend</h6>
+        <span class="ds-badge ds-badge-neutral">Last 6 Months</span>
+      </div>
+      <div class="dash-panel-body">
+        {% if monthly_trend %}
+        <canvas id="chartRevenueTrend" height="230"></canvas>
+        {% else %}
+        <div class="dash-panel-empty"><i class="fas fa-chart-line fa-lg mb-2 d-block"></i>No trend data yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="dash-panel h-100">
+      <div class="dash-panel-header">
+        <h6>Orders by Status</h6>
+      </div>
+      <div class="dash-panel-body d-flex align-items-center justify-content-center">
+        {% if sales_by_status %}
+        <canvas id="chartStatusBreakdown" height="230"></canvas>
+        {% else %}
+        <div class="dash-panel-empty"><i class="fas fa-inbox fa-lg mb-2 d-block"></i>No orders yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tables Row -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="dash-panel h-100">
+      <div class="dash-panel-header"><h6>Orders by Status</h6></div>
+      <div class="table-responsive">
+        <table class="ds-table mb-0">
+          <thead><tr><th>Status</th><th>Orders</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for row in sales_by_status %}
+            <tr>
+              <td>
+                <span class="ds-badge
+                  {% if row.status == 'delivered' or row.status == 'confirmed' %}ds-badge-success
+                  {% elif row.status == 'pending' %}ds-badge-warning
+                  {% elif row.status == 'cancelled' %}ds-badge-danger
+                  {% else %}ds-badge-neutral{% endif %}">
+                  {{ row.status|title }}
+                </span>
+              </td>
+              <td class="fw-semibold">{{ row.count }}</td>
+              <td class="fw-semibold" style="color:var(--brand-green);">₱{{ row.revenue|default:0|floatformat:0|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">
+              <div class="ds-empty-state">
+                <i class="fas fa-receipt icon"></i>
+                <div class="title">No orders found</div>
+                <div class="desc">Try a different reporting period.</div>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="dash-panel h-100">
+      <div class="dash-panel-header"><h6>Top Products by Units Sold</h6></div>
+      <div class="table-responsive">
+        <table class="ds-table mb-0">
+          <thead><tr><th>Product</th><th>Units</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for p in top_products %}
+            <tr>
+              <td class="fw-semibold" style="font-size:13px;">{{ p.product_name|truncatechars:28 }}</td>
+              <td><span class="ds-badge ds-badge-neutral">{{ p.units }}</span></td>
+              <td class="fw-semibold" style="color:var(--brand-green);">₱{{ p.revenue|floatformat:0|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">
+              <div class="ds-empty-state">
+                <i class="fas fa-box-open icon"></i>
+                <div class="title">No product sales yet</div>
+                <div class="desc">Top sellers will appear here once orders come in.</div>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Monthly Trend Detail -->
+<div class="dash-panel">
+  <div class="dash-panel-header">
+    <h6>Monthly Sales Trend</h6>
+    <span class="ds-badge ds-badge-neutral">Detail</span>
+  </div>
+  <div class="table-responsive">
+    <table class="ds-table mb-0">
+      <thead><tr><th>Month</th><th>Orders</th><th>Revenue</th></tr></thead>
+      <tbody>
+        {% for m in monthly_trend %}
+        <tr>
+          <td class="fw-semibold">{{ m.month|date:"F Y" }}</td>
+          <td>{{ m.orders }}</td>
+          <td class="fw-semibold" style="color:var(--brand-green);">₱{{ m.revenue|default:0|floatformat:0|intcomma }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">
+          <div class="ds-empty-state">
+            <i class="fas fa-calendar icon"></i>
+            <div class="title">No data yet</div>
+            <div class="desc">Monthly sales will appear here once orders come in.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const monthlyLabels  = [{% for m in monthly_trend %}"{{ m.month|date:'M Y' }}",{% endfor %}];
+const monthlyRevenue = [{% for m in monthly_trend %}{{ m.revenue|default:0|floatformat:0 }},{% endfor %}];
+const statusLabels   = [{% for row in sales_by_status %}"{{ row.status|title }}",{% endfor %}];
+const statusCounts   = [{% for row in sales_by_status %}{{ row.count }},{% endfor %}];
+const statusKeys     = [{% for row in sales_by_status %}"{{ row.status }}",{% endfor %}];
+
+const STATUS_COLORS = {
+  delivered: '#0F6B4F', confirmed: '#0F6B4F',
+  pending: '#B7791F', processing: '#2980B9',
+  shipped: '#2980B9', cancelled: '#C0362C'
+};
+const statusColors = statusKeys.map(k => STATUS_COLORS[k] || '#9AA09C');
+
+if (document.body.classList.contains('dark-mode')) {
+  Chart.defaults.color = '#aab2c2';
+  Chart.defaults.borderColor = '#2a3448';
+}
+
+const revenueEl = document.getElementById('chartRevenueTrend');
+if (revenueEl) {
+  new Chart(revenueEl, {
+    type: 'line',
+    data: {
+      labels: monthlyLabels,
+      datasets: [{
+        label: 'Revenue',
+        data: monthlyRevenue,
+        borderColor: '#0F6B4F',
+        backgroundColor: 'rgba(15,107,79,.08)',
+        tension: 0.4, fill: true,
+        pointBackgroundColor: '#0F6B4F', pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => '₱' + ctx.parsed.y.toLocaleString() } }
+      },
+      scales: { y: { beginAtZero: true, ticks: { callback: (v) => '₱' + v.toLocaleString() } } }
+    }
+  });
+}
+
+const statusEl = document.getElementById('chartStatusBreakdown');
+if (statusEl && statusCounts.length) {
+  new Chart(statusEl, {
+    type: 'doughnut',
+    data: {
+      labels: statusLabels,
+      datasets: [{ data: statusCounts, backgroundColor: statusColors, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } },
+      cutout: '65%',
+    }
+  });
+}
+</script>
+{% endblock %}

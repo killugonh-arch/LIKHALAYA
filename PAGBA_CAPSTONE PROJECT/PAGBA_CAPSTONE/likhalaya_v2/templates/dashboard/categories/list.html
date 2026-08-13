@@ -1,0 +1,45 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% block page_title %}Categories{% endblock %}
+{% block sb_categories %}active{% endblock %}
+{% block title %}Categories – Dashboard{% endblock %}
+
+{% block dash_content %}
+<div class="dash-breadcrumb">
+  <a href="{% url 'dashboard:home' %}"><i class="fas fa-home"></i></a>
+  <span class="sep">/</span><span class="current">Categories</span>
+</div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0" style="color:var(--teal);">Product Categories</h4>
+  {% if request.user.is_admin_user %}
+  <a href="{% url 'dashboard:category_create' %}" class="btn btn-gold btn-sm px-3"><i class="fas fa-plus me-1"></i>Add Category</a>
+  {% endif %}
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table dash-table mb-0">
+      <thead><tr><th>Category</th><th>Products</th>{% if request.user.is_admin_user %}<th>Actions</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ cat.name }}</div>
+            <div class="text-muted" style="font-size:11px;">{{ cat.description|truncatechars:50 }}</div>
+          </td>
+          <td><span class="badge bg-primary" style="font-size:11px;">{{ cat.product_count }}</span></td>
+          {% if request.user.is_admin_user %}
+          <td>
+            <div class="action-btns">
+              <a href="{% url 'dashboard:category_edit' cat.pk %}" class="btn-icon-action btn-icon-edit" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+              <a href="{% url 'dashboard:category_delete' cat.pk %}" class="btn-icon-action btn-icon-delete" title="Archive"><i class="fas fa-trash"></i></a>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{% if request.user.is_admin_user %}3{% else %}2{% endif %}" class="text-center py-5 text-muted">No categories yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

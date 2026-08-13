@@ -1,0 +1,445 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block sb_products %}active{% endblock %}
+{% block title %}{{ title }} – Dashboard{% endblock %}
+
+{% block dash_content %}
+<style>
+/* ── Page header ── */
+.pform-header {
+  background: linear-gradient(120deg, var(--teal), #2D7A73);
+  border-radius: 18px; padding: 28px 32px; margin-bottom: 28px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  box-shadow: 0 8px 24px rgba(30,95,90,.18);
+}
+.pform-header h4 { color: #fff; font-family: 'Playfair Display', serif; font-size: 24px; margin: 0; }
+.pform-header p { color: rgba(255,255,255,.75); font-size: 13px; margin: 4px 0 0; }
+.pform-header .btn-back {
+  background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.28);
+  border-radius: 10px; font-size: 13px; padding: 8px 16px; transition: background .15s;
+}
+.pform-header .btn-back:hover { background: rgba(255,255,255,.24); color: #fff; }
+
+/* ── Section cards ── */
+.pform-card {
+  background: #fff; border-radius: 16px; border: 1px solid #eee6d8;
+  box-shadow: 0 2px 14px rgba(30,25,10,.04); margin-bottom: 24px; overflow: hidden;
+}
+.pform-card-header {
+  display: flex; align-items: center; gap: 10px; padding: 18px 24px;
+  border-bottom: 1px solid #f2ede1;
+}
+.pform-card-header .icon-badge {
+  width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; background: rgba(30,95,90,.09); color: var(--teal); font-size: 15px; flex-shrink: 0;
+}
+.pform-card-header h6 { margin: 0; font-weight: 700; font-size: 14.5px; color: #2a2a2a; }
+.pform-card-header .subtitle { font-size: 11.5px; color: #9a9a9a; margin-top: 1px; }
+.pform-card-body { padding: 22px 24px; }
+
+/* ── Form fields ── */
+.pform-card-body label.form-label {
+  font-size: 12.5px; font-weight: 700; color: #555; letter-spacing: .2px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.pform-card-body .form-control,
+.pform-card-body .form-select {
+  border-radius: 10px; border: 1.5px solid #e6e0d3; font-size: 14px;
+  padding: 10px 14px; transition: border-color .15s, box-shadow .15s;
+}
+.pform-card-body .form-control:focus,
+.pform-card-body .form-select:focus {
+  border-color: var(--teal); box-shadow: 0 0 0 3px rgba(30,95,90,.12);
+}
+.pform-card-body textarea.form-control { resize: vertical; min-height: 110px; }
+.price-input-group { position: relative; }
+.price-input-group .peso-prefix {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--gold); font-weight: 700; font-size: 14px; pointer-events: none;
+}
+.price-input-group input.form-control { padding-left: 30px; }
+
+/* ── Toggle switches ── */
+.pform-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border: 1.5px solid #eee6d8; border-radius: 12px; margin-bottom: 10px;
+  transition: border-color .15s, background .15s;
+}
+.pform-toggle:last-child { margin-bottom: 0; }
+.pform-toggle:hover { border-color: #d8cdb4; background: #fbfaf6; }
+.pform-toggle .toggle-text .title { font-weight: 700; font-size: 13px; color: #333; }
+.pform-toggle .toggle-text .desc { font-size: 11.5px; color: #999; margin-top: 1px; }
+.pform-toggle .form-check-input { width: 40px; height: 22px; cursor: pointer; flex-shrink: 0; margin: 0; }
+.pform-toggle .form-check-input:checked { background-color: var(--teal); border-color: var(--teal); }
+
+/* ── Image dropzone ── */
+.image-dropzone {
+  display: block; position: relative; width: 100%; aspect-ratio: 4/3;
+  border: 2px dashed #d8d0c2; border-radius: 14px; background: #faf8f4;
+  cursor: pointer; overflow: hidden; transition: border-color .18s, background .18s;
+}
+.image-dropzone:hover { border-color: var(--teal); background: #f3f1ea; }
+.image-dropzone-preview { width: 100%; height: 100%; object-fit: cover; display: block; }
+.image-dropzone-placeholder {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; padding: 16px; color: #999;
+}
+.image-dropzone-placeholder i { font-size: 34px; color: var(--gold); margin-bottom: 6px; }
+.image-dropzone-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(30,95,90,.72); color: #fff; font-weight: 600; font-size: 13px;
+  opacity: 0; transition: opacity .18s;
+}
+.image-dropzone.has-image:hover .image-dropzone-overlay { opacity: 1; }
+
+/* ── Sticky action bar ── */
+.pform-actions {
+  position: sticky; bottom: 0; background: #fff; border-top: 1px solid #eee6d8;
+  border-radius: 16px; box-shadow: 0 -4px 18px rgba(0,0,0,.05); padding: 16px 24px;
+  display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px;
+}
+.pform-actions .btn { border-radius: 10px; font-weight: 600; font-size: 13.5px; padding: 10px 24px; }
+.pform-actions .btn-gold { box-shadow: 0 4px 14px rgba(201,132,26,.3); }
+
+.required-dot { color: var(--gold); font-size: 8px; vertical-align: middle; margin-left: 3px; }
+
+/* ── Per-size gallery ── */
+.gallery-row {
+  display: grid; grid-template-columns: 90px 1fr auto; gap: 14px; align-items: center;
+  padding: 14px; border: 1.5px solid #eee6d8; border-radius: 12px; margin-bottom: 12px;
+  background: #fbfaf6;
+}
+.gallery-row.marked-delete { opacity: .4; background: #fdf3f2; border-color: #f2d5d2; }
+.gallery-thumb-wrap {
+  width: 90px; height: 90px; border-radius: 10px; overflow: hidden; background: #f0ede6;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative;
+}
+.gallery-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-thumb-wrap i { color: #c9c0ad; font-size: 22px; }
+.gallery-row .form-select, .gallery-row .form-control { font-size: 13px; padding: 8px 10px; border-radius: 8px; }
+.gallery-row-fields { display: flex; flex-direction: column; gap: 8px; }
+.gallery-size-caption { display: flex; gap: 8px; }
+.gallery-size-caption .form-select { max-width: 160px; }
+.gallery-remove-btn {
+  width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid #f2d5d2; background: #fff;
+  color: #e74c3c; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.gallery-remove-btn input[type="checkbox"] { display: none; }
+.gallery-remove-btn:hover { background: #fdf3f2; }
+.gallery-add-btn {
+  border: 1.5px dashed #d8cdb4; border-radius: 12px; background: #fff; color: var(--teal);
+  font-weight: 600; font-size: 13px; padding: 12px; width: 100%; transition: all .15s;
+}
+.gallery-add-btn:hover { border-color: var(--teal); background: #f3f1ea; }
+</style>
+
+<div class="dash-breadcrumb">
+  <a href="{% url 'dashboard:home' %}"><i class="fas fa-home"></i></a>
+  <span class="sep">/</span><a href="{% url 'dashboard:product_list' %}">Products</a>
+  <span class="sep">/</span><span class="current">{{ title }}</span>
+</div>
+
+<div class="pform-header">
+  <div>
+    <h4>{{ title }}</h4>
+    <p>Fill in the details below to {% if product %}update this{% else %}list a new{% endif %} handcrafted product.</p>
+  </div>
+  <a href="{% url 'dashboard:product_list' %}" class="btn-back text-decoration-none">
+    <i class="fas fa-arrow-left me-1"></i>Back to Products
+  </a>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <div class="col-12 col-lg-8">
+      <div class="pform-card">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-box-open"></i></div>
+          <div>
+            <h6>Product Information</h6>
+            <div class="subtitle">The basics buyers will see first</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          <div class="mb-3">
+            <label class="form-label">Product Name <span class="required-dot">●</span></label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Category</label>
+            {{ form.category }}
+          </div>
+          <div class="mb-0">
+            <label class="form-label">Description</label>
+            {{ form.description }}
+          </div>
+        </div>
+      </div>
+
+      <div class="pform-card mb-0">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-coins"></i></div>
+          <div>
+            <h6>Pricing &amp; Inventory</h6>
+            <div class="subtitle">Set what buyers pay and what's in stock</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          <div class="row g-3">
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Small Price <span class="required-dot">●</span></label>
+              <div class="price-input-group">
+                <span class="peso-prefix">₱</span>
+                {{ form.price_min }}
+              </div>
+              {% if form.price_min.errors %}<div class="invalid-feedback d-block">{{ form.price_min.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Medium Price</label>
+              <div class="price-input-group">
+                <span class="peso-prefix">₱</span>
+                {{ form.price_medium }}
+              </div>
+              {% if form.price_medium.errors %}<div class="invalid-feedback d-block">{{ form.price_medium.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Large Price</label>
+              <div class="price-input-group">
+                <span class="peso-prefix">₱</span>
+                {{ form.price_max }}
+              </div>
+              {% if form.price_max.errors %}<div class="invalid-feedback d-block">{{ form.price_max.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <div class="text-muted" style="font-size:11.5px;">
+                <i class="fas fa-circle-info me-1"></i>{{ form.price_max.help_text }}
+                {{ form.price_medium.help_text }}
+              </div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Stock Quantity</label>
+              {{ form.stock }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="pform-card">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-image"></i></div>
+          <div>
+            <h6>Product Image</h6>
+            <div class="subtitle">A clear photo sells faster</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          {{ form.image }}
+        </div>
+      </div>
+
+      <div class="pform-card mb-0">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-eye"></i></div>
+          <div>
+            <h6>Status &amp; Visibility</h6>
+            <div class="subtitle">Control where this product appears</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          <label class="pform-toggle" for="{{ form.is_active.id_for_label }}">
+            <span class="toggle-text">
+              <span class="title d-block">Active</span>
+              <span class="desc d-block">Visible in the storefront</span>
+            </span>
+            {{ form.is_active }}
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="pform-card mb-0">
+        <div class="pform-card-header">
+          <div class="icon-badge"><i class="fas fa-images"></i></div>
+          <div>
+            <h6>Photos per Size</h6>
+            <div class="subtitle">Add extra photos and tag each one to Small, Medium, or Large — buyers see the matching photos when they pick a size. Leave the size as "All sizes" for a general shot.</div>
+          </div>
+        </div>
+        <div class="pform-card-body">
+          {{ image_formset.management_form }}
+          {% if image_formset.non_form_errors %}
+          <div class="invalid-feedback d-block mb-3">{{ image_formset.non_form_errors.0 }}</div>
+          {% endif %}
+          <div class="text-muted mb-3" style="font-size:11.5px;" id="galleryCapNote">
+            <i class="fas fa-circle-info me-1"></i>Max 3 photos per size (General, Small, Medium, Large).
+          </div>
+          <div id="galleryRows">
+            {% for img_form in image_formset %}
+            <div class="gallery-row {% if img_form.instance.pk %}existing-row{% endif %}" data-form-index="{{ forloop.counter0 }}">
+              {% if img_form.non_field_errors %}<div class="invalid-feedback d-block mb-2">{{ img_form.non_field_errors.0 }}</div>{% endif %}
+              {{ img_form.id }}
+              <div class="gallery-thumb-wrap" id="galThumb{{ forloop.counter0 }}">
+                {% if img_form.instance.image %}
+                  <img src="{{ img_form.instance.image.url }}" alt="">
+                {% else %}
+                  <i class="fas fa-image"></i>
+                {% endif %}
+              </div>
+              <div class="gallery-row-fields">
+                <div class="gallery-size-caption">
+                  {{ img_form.size }}
+                  {{ img_form.caption }}
+                </div>
+                <div onchange="likhalayaGalleryPreview(this, {{ forloop.counter0 }})">
+                  {{ img_form.image }}
+                </div>
+                {{ img_form.order.as_hidden }}
+                {% if img_form.image.errors %}<div class="invalid-feedback d-block">{{ img_form.image.errors.0 }}</div>{% endif %}
+              </div>
+              {% if img_form.DELETE %}
+              <label class="gallery-remove-btn" title="Remove this photo">
+                <i class="fas fa-trash"></i>
+                {{ img_form.DELETE }}
+              </label>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="gallery-add-btn" id="galleryAddBtn">
+            <i class="fas fa-plus me-1"></i>Add another photo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="pform-actions">
+        <a href="{% url 'dashboard:product_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-gold">Save Product</button>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+<script>
+(function() {
+  function likhalayaGalleryPreview(input, idx) {
+    var wrap = document.getElementById('galThumb' + idx);
+    if (!wrap || !input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      wrap.innerHTML = '<img src="' + e.target.result + '" alt="">';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+  window.likhalayaGalleryPreview = likhalayaGalleryPreview;
+
+  var MAX_PER_SIZE = 3;
+  var SIZE_LABELS = { '': 'General', 'S': 'Small', 'M': 'Medium', 'L': 'Large' };
+  var addBtn = document.getElementById('galleryAddBtn');
+  var rowsWrap = document.getElementById('galleryRows');
+  var totalFormsInput = document.querySelector('#id_images-TOTAL_FORMS');
+  if (!addBtn || !rowsWrap || !totalFormsInput) return;
+
+  function activeRows() {
+    return Array.from(rowsWrap.querySelectorAll('.gallery-row')).filter(function(row) {
+      return !row.classList.contains('marked-delete');
+    });
+  }
+
+  function sizeCounts() {
+    var counts = { '': 0, 'S': 0, 'M': 0, 'L': 0 };
+    activeRows().forEach(function(row) {
+      var sel = row.querySelector('select[name$="-size"]');
+      if (sel) counts[sel.value] = (counts[sel.value] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function refreshCaps() {
+    var counts = sizeCounts();
+    rowsWrap.querySelectorAll('select[name$="-size"]').forEach(function(sel) {
+      var current = sel.value;
+      Array.from(sel.options).forEach(function(opt) {
+        opt.disabled = opt.value !== current && (counts[opt.value] || 0) >= MAX_PER_SIZE;
+      });
+    });
+    var allFull = Object.keys(SIZE_LABELS).every(function(k) { return (counts[k] || 0) >= MAX_PER_SIZE; });
+    addBtn.disabled = allFull;
+    addBtn.classList.toggle('disabled', allFull);
+    addBtn.innerHTML = allFull
+      ? '<i class="fas fa-check me-1"></i>Max 3 photos reached for every size'
+      : '<i class="fas fa-plus me-1"></i>Add another photo';
+  }
+
+  function bindSizeSelect(sel) {
+    sel.addEventListener('change', function() {
+      var counts = sizeCounts();
+      if ((counts[sel.value] || 0) > MAX_PER_SIZE) {
+        alert('You already have ' + MAX_PER_SIZE + ' photos tagged "' + SIZE_LABELS[sel.value] + '". Remove one first or pick a different size.');
+        sel.value = sel.dataset.lastValid || '';
+      }
+      sel.dataset.lastValid = sel.value;
+      refreshCaps();
+    });
+    sel.dataset.lastValid = sel.value;
+  }
+
+  // Existing rows: fade on delete + guard the size dropdown
+  Array.from(rowsWrap.querySelectorAll('.gallery-row')).forEach(function(row) {
+    var delCb = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+    if (delCb) {
+      delCb.addEventListener('change', function() {
+        row.classList.toggle('marked-delete', delCb.checked);
+        refreshCaps();
+      });
+    }
+    var sel = row.querySelector('select[name$="-size"]');
+    if (sel) bindSizeSelect(sel);
+  });
+
+  addBtn.addEventListener('click', function() {
+    var counts = sizeCounts();
+    var allFull = Object.keys(SIZE_LABELS).every(function(k) { return (counts[k] || 0) >= MAX_PER_SIZE; });
+    if (allFull) return;
+
+    var idx = parseInt(totalFormsInput.value, 10);
+    var row = document.createElement('div');
+    row.className = 'gallery-row';
+    row.dataset.formIndex = idx;
+    row.innerHTML =
+      '<div class="gallery-thumb-wrap" id="galThumb' + idx + '"><i class="fas fa-image"></i></div>' +
+      '<div class="gallery-row-fields">' +
+        '<div class="gallery-size-caption">' +
+          '<select name="images-' + idx + '-size" class="form-select">' +
+            '<option value="" selected>All sizes (general)</option>' +
+            '<option value="S">Small</option>' +
+            '<option value="M">Medium</option>' +
+            '<option value="L">Large</option>' +
+          '</select>' +
+          '<input type="text" name="images-' + idx + '-caption" class="form-control" placeholder="Caption (optional)">' +
+        '</div>' +
+        '<div onchange="likhalayaGalleryPreview(this, ' + idx + ')">' +
+          '<input type="file" name="images-' + idx + '-image" class="form-control" accept="image/*">' +
+        '</div>' +
+        '<input type="hidden" name="images-' + idx + '-order" value="' + idx + '">' +
+      '</div>';
+    rowsWrap.appendChild(row);
+    totalFormsInput.value = idx + 1;
+
+    var newSel = row.querySelector('select[name$="-size"]');
+    bindSizeSelect(newSel);
+    refreshCaps();
+  });
+
+  refreshCaps();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Terms of Service – Likhalaya{% endblock %}
+
+{% block extra_css %}
+<style>
+.terms-hero { background: linear-gradient(135deg, var(--teal), #2D7A73); min-height: 200px; display: flex; align-items: center; }
+.terms-card { background: #fff; border-radius: 16px; padding: 40px; box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+.terms-card h5 { font-family: 'Playfair Display', serif; color: var(--teal); margin-top: 28px; margin-bottom: 10px; }
+.terms-card h5:first-child { margin-top: 0; }
+.terms-card p, .terms-card li { color: #555; font-size: 14.5px; line-height: 1.75; }
+.terms-card ul { padding-left: 20px; }
+.terms-updated { font-size: 12.5px; color: #999; }
+</style>
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="terms-hero text-white text-center">
+  <div class="container">
+    <h2 class="fw-bold mb-2" style="font-family:'Playfair Display',serif;">Terms of Service</h2>
+    <p class="mb-0" style="color:rgba(255,255,255,.85);">Please read these terms carefully before using Likhalaya</p>
+  </div>
+</div>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+      <div class="terms-card">
+        <p class="terms-updated mb-4">Last updated: July 2026</p>
+
+        <h5>1. About Likhalaya</h5>
+        <p>Likhalaya is an online marketplace operated in support of the Persons Deprived of Liberty (PDL) livelihood program at Carigara District Jail, Bureau of Jail Management and Penology. By creating an account or purchasing a product through this site, you agree to the terms described below.</p>
+
+        <h5>2. Your Account</h5>
+        <ul>
+          <li>You must provide accurate and current information when registering, including a valid name, email address, and shipping details.</li>
+          <li>You are responsible for keeping your password confidential and for all activity under your account.</li>
+          <li>Accounts may not be shared, sold, or transferred to another person.</li>
+        </ul>
+
+        <h5>3. Products &amp; Orders</h5>
+        <ul>
+          <li>All items sold on Likhalaya are handcrafted by PDL artisans, so slight variations in color, size, or finish are normal and not considered defects.</li>
+          <li>Stock levels shown on the site are updated regularly but are not guaranteed until an order is confirmed.</li>
+          <li>Prices are listed in Philippine Peso (₱) and may change without prior notice.</li>
+        </ul>
+
+        <h5>4. Payment &amp; Shipping</h5>
+        <ul>
+          <li>Orders are processed once payment or payment arrangement (e.g., cash on delivery) is confirmed.</li>
+          <li>Shipping fees, where applicable, are calculated at checkout based on your order subtotal.</li>
+          <li>Delivery times are estimates and may vary due to circumstances beyond our control.</li>
+        </ul>
+
+        <h5>5. Supporting PDL Artisans</h5>
+        <p>A portion of every purchase supports livelihood and reintegration programs for PDL artisans. By shopping on Likhalaya, you are directly contributing to skills training and rehabilitation efforts within the facility.</p>
+
+        <h5>6. Acceptable Use</h5>
+        <p>You agree not to misuse the site — including attempting to disrupt its operation, submitting false information, or using it for any unlawful purpose.</p>
+
+        <h5>7. Changes to These Terms</h5>
+        <p>We may update these Terms of Service from time to time. Continued use of Likhalaya after changes are posted constitutes your acceptance of the revised terms.</p>
+
+        <h5>8. Contact Us</h5>
+        <p>Questions about these terms can be sent to <a href="mailto:likhalaya@bjmp.gov.ph" style="color:var(--teal);font-weight:600;">likhalaya@bjmp.gov.ph</a> or through our <a href="{% url 'store:contact' %}" style="color:var(--teal);font-weight:600;">Contact page</a>.</p>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary btn-sm px-4 rounded-3">
+          <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,301 @@
+<!-- Size Picker Modal (shared) -->
+<form id="sizeModalForm" method="post" style="display:none;">
+  {% csrf_token %}
+  <input type="hidden" name="quantity" id="sizeModalQtyInput" value="1">
+  <input type="hidden" name="size" id="sizeModalSizeInput" value="M">
+  <input type="hidden" name="buy_now" id="sizeModalBuyNowInput" value="">
+</form>
+
+<div class="modal fade" id="sizePickerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <div class="modal-content" style="border-radius:14px;">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" id="sizePickerProductName">Choose a size</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Image carousel: image with left/right arrows -->
+        <div class="mb-3" id="modalImageWrap" style="display:none;">
+          <div class="mic-frame">
+            <img id="modalImgMain" src="" alt="">
+            <button type="button" class="mic-nav mic-prev" id="modalImgPrev" aria-label="Previous image">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button type="button" class="mic-nav mic-next" id="modalImgNext" aria-label="Next image">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="mic-dots" id="modalImgDots"></div>
+        </div>
+
+        <div class="d-flex flex-column gap-2" id="sizePickerOptions">
+          <input type="radio" name="size_choice_modal" id="modalSizeS" class="btn-check" value="S">
+          <label for="modalSizeS" class="size-modal-option d-flex justify-content-between align-items-center px-3 py-2">
+            <span class="fw-semibold">Small</span>
+            <span class="text-gold fw-semibold" id="modalPriceS"></span>
+          </label>
+          <input type="radio" name="size_choice_modal" id="modalSizeM" class="btn-check" value="M" checked>
+          <label for="modalSizeM" class="size-modal-option d-flex justify-content-between align-items-center px-3 py-2">
+            <span class="fw-semibold">Medium</span>
+            <span class="text-gold fw-semibold" id="modalPriceM"></span>
+          </label>
+          <input type="radio" name="size_choice_modal" id="modalSizeL" class="btn-check" value="L">
+          <label for="modalSizeL" class="size-modal-option d-flex justify-content-between align-items-center px-3 py-2">
+            <span class="fw-semibold">Large</span>
+            <span class="text-gold fw-semibold" id="modalPriceL"></span>
+          </label>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-3" style="border-top:1px solid #eee;">
+          <span class="fw-semibold" style="font-size:14px;">Quantity</span>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="modalQtyMinus">−</button>
+            <input type="number" id="modalQtyValue" class="text-center border rounded" style="width:56px;height:34px;" value="1" min="1">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="modalQtyPlus">+</button>
+          </div>
+        </div>
+        <div class="text-muted small mt-1" id="modalStockNote"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-gold fw-bold" id="sizePickerConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.size-modal-option {
+  border: 2px solid #e2ddd3;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.size-modal-option:hover { border-color: var(--teal); }
+.btn-check:checked + .size-modal-option {
+  border-color: var(--teal);
+  background: rgba(30,95,90,.08);
+  box-shadow: 0 0 0 2px rgba(30,95,90,.12);
+}
+#modalQtyValue::-webkit-outer-spin-button,
+#modalQtyValue::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#modalQtyValue {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Simple image carousel: image with left/right arrows on top of it */
+.mic-frame {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f0ede6;
+}
+.mic-frame img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+.mic-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.85);
+  color: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+.mic-nav:hover { background: #fff; }
+.mic-prev { left: 8px; }
+.mic-next { right: 8px; }
+.mic-dots { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+.mic-dot { width: 8px; height: 8px; border-radius: 50%; border: none; background: #ddd6c9; padding: 0; cursor: pointer; transition: all .2s; }
+.mic-dot:hover { background: #c9c0ad; }
+.mic-dot.active { background: var(--teal); width: 18px; border-radius: 4px; }
+</style>
+
+<script>
+(function() {
+  var modalEl = document.getElementById('sizePickerModal');
+  var bsModal = new bootstrap.Modal(modalEl);
+  var form = document.getElementById('sizeModalForm');
+  var sizeInput = document.getElementById('sizeModalSizeInput');
+  var qtyHiddenInput = document.getElementById('sizeModalQtyInput');
+  var buyNowInput = document.getElementById('sizeModalBuyNowInput');
+  var nameEl = document.getElementById('sizePickerProductName');
+  var priceS = document.getElementById('modalPriceS');
+  var priceM = document.getElementById('modalPriceM');
+  var priceL = document.getElementById('modalPriceL');
+  var sizeOptionsEl = document.getElementById('sizePickerOptions');
+  var qtyValueEl = document.getElementById('modalQtyValue');
+  var qtyMinusBtn = document.getElementById('modalQtyMinus');
+  var qtyPlusBtn = document.getElementById('modalQtyPlus');
+  var stockNoteEl = document.getElementById('modalStockNote');
+  var currentStock = 1;
+
+  // Image carousel elements (just image + left/right arrows)
+  var imgWrap = document.getElementById('modalImageWrap');
+  var imgMain = document.getElementById('modalImgMain');
+  var imgPrevBtn = document.getElementById('modalImgPrev');
+  var imgNextBtn = document.getElementById('modalImgNext');
+  var imgDotsWrap = document.getElementById('modalImgDots');
+  var imgList = [];
+  var imgIndex = 0;
+  var imgBySize = { general: [], S: [], M: [], L: [] };
+
+  function imagesForSize(size) {
+    var general = imgBySize.general || [];
+    var specific = (size === 'S' || size === 'M' || size === 'L') ? (imgBySize[size] || []) : [];
+    var combined = general.concat(specific);
+    if (combined.length) return combined;
+    return general.concat(imgBySize.S || [], imgBySize.M || [], imgBySize.L || []);
+  }
+
+  function renderImage() {
+    if (!imgList.length) return;
+    imgMain.src = imgList[imgIndex];
+    if (imgDotsWrap) {
+      imgDotsWrap.querySelectorAll('.mic-dot').forEach(function(dot, i) {
+        dot.classList.toggle('active', i === imgIndex);
+      });
+    }
+  }
+
+  function goToImage(i) {
+    if (!imgList.length) return;
+    imgIndex = (i + imgList.length) % imgList.length;
+    renderImage();
+  }
+
+  function rebuildDots() {
+    if (!imgDotsWrap) return;
+    imgDotsWrap.innerHTML = '';
+    if (imgList.length <= 1) return;
+    imgList.forEach(function(_, i) {
+      var dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'mic-dot';
+      dot.setAttribute('aria-label', 'Go to image ' + (i + 1));
+      dot.addEventListener('click', function() { goToImage(i); });
+      imgDotsWrap.appendChild(dot);
+    });
+  }
+
+  function applySize(size) {
+    imgList = imagesForSize(size);
+    imgIndex = 0;
+    if (!imgList.length) {
+      imgWrap.style.display = 'none';
+      return;
+    }
+    imgWrap.style.display = '';
+    var multi = imgList.length > 1;
+    imgPrevBtn.style.display = multi ? '' : 'none';
+    imgNextBtn.style.display = multi ? '' : 'none';
+    rebuildDots();
+    renderImage();
+  }
+
+  function loadImages(imagesId, initialSize) {
+    imgBySize = { general: [], S: [], M: [], L: [] };
+    var dataEl = imagesId ? document.getElementById(imagesId) : null;
+    if (dataEl) {
+      try { imgBySize = JSON.parse(dataEl.textContent) || imgBySize; } catch (e) {}
+    }
+    applySize(initialSize || 'M');
+  }
+
+  imgPrevBtn.addEventListener('click', function() { goToImage(imgIndex - 1); });
+  imgNextBtn.addEventListener('click', function() { goToImage(imgIndex + 1); });
+
+  function fmt(v) {
+    var n = parseFloat(v);
+    return isNaN(n) ? '' : '₱' + n.toFixed(0);
+  }
+
+  function clampQty(val) {
+    var n = parseInt(val, 10);
+    if (isNaN(n) || n < 1) n = 1;
+    if (currentStock > 0 && n > currentStock) n = currentStock;
+    return n;
+  }
+
+  function setQty(val) {
+    var n = clampQty(val);
+    qtyValueEl.value = n;
+    qtyHiddenInput.value = n;
+  }
+
+  document.querySelectorAll('.js-open-size-modal').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      form.action = btn.dataset.url;
+      var hasSizes = btn.dataset.hasSizes === '1';
+      nameEl.textContent = (hasSizes ? 'Choose a size — ' : 'Add to cart — ') + btn.dataset.name;
+      buyNowInput.value = btn.dataset.mode === 'buy_now' ? '1' : '';
+      currentStock = parseInt(btn.dataset.stock, 10) || 1;
+
+      sizeOptionsEl.style.display = hasSizes ? '' : 'none';
+      var preselect = 'M';
+      if (hasSizes) {
+        priceS.textContent = fmt(btn.dataset.priceS);
+        priceM.textContent = fmt(btn.dataset.priceM);
+        priceL.textContent = fmt(btn.dataset.priceL);
+        preselect = btn.dataset.preselectSize || 'M';
+        var preselectEl = document.getElementById('modalSize' + preselect);
+        if (preselectEl) {
+          preselectEl.checked = true;
+          sizeInput.value = preselect;
+        } else {
+          document.getElementById('modalSizeM').checked = true;
+          sizeInput.value = 'M';
+          preselect = 'M';
+        }
+      } else {
+        sizeInput.value = '';
+      }
+
+      loadImages(btn.dataset.imagesId, preselect);
+
+      qtyValueEl.max = currentStock;
+      setQty(1);
+      stockNoteEl.textContent = currentStock > 0 ? currentStock + ' available' : '';
+
+      bsModal.show();
+    });
+  });
+
+  modalEl.querySelectorAll('input[name="size_choice_modal"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      sizeInput.value = radio.value;
+      applySize(radio.value);
+    });
+  });
+
+  qtyMinusBtn.addEventListener('click', function() {
+    setQty(parseInt(qtyValueEl.value, 10) - 1);
+  });
+  qtyPlusBtn.addEventListener('click', function() {
+    setQty(parseInt(qtyValueEl.value, 10) + 1);
+  });
+  qtyValueEl.addEventListener('change', function() {
+    setQty(qtyValueEl.value);
+  });
+
+  document.getElementById('sizePickerConfirmBtn').addEventListener('click', function() {
+    qtyHiddenInput.value = clampQty(qtyValueEl.value);
+    form.submit();
+  });
+})();
+</script>
