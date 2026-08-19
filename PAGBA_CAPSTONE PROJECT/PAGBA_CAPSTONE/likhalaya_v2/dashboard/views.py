@@ -844,7 +844,7 @@ def activity_log(request):
     failed_logins = base_qs.filter(action='login_failed')
     if search:
         failed_logins = failed_logins.filter(Q(username__icontains=search) | Q(ip_address__icontains=search))
-    failed_logins = failed_logins.order_by('-timestamp')[:10]
+    failed_logins = failed_logins.order_by('-timestamp')[:50]
 
     session_logs = base_qs.exclude(action='login_failed')
     if staff_filter:
