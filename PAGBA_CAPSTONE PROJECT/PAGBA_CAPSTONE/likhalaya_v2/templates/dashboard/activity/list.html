@@ -117,11 +117,11 @@ body.dark-mode .session-username-link { color: #6fd6c9; }
     <span class="fw-semibold small text-danger"><i class="fas fa-triangle-exclamation me-1"></i>Recent Failed Login Attempts</span>
   </div>
   <div class="table-responsive">
-    <table class="table dash-table mb-0" id="failedLoginsTable">
+    <table class="table dash-table mb-0">
       <thead><tr><th>Time</th><th>Attempted Username</th><th>IP Address</th></tr></thead>
       <tbody>
         {% for f in failed_logins %}
-        <tr class="clickable failed-login-row" style="cursor:pointer;" data-href="{% url 'dashboard:activity_log_detail' f.id %}">
+        <tr class="clickable" style="cursor:pointer;" data-href="{% url 'dashboard:activity_log_detail' f.id %}">
           <td class="text-muted small" style="white-space:nowrap;">{{ f.timestamp|date:"M d, Y · g:i A" }}</td>
           <td class="small">{{ f.username|default:"—" }}</td>
           <td class="text-muted small">{{ f.ip_address|default:"—" }}</td>
@@ -130,76 +130,8 @@ body.dark-mode .session-username-link { color: #6fd6c9; }
       </tbody>
     </table>
   </div>
-  <div id="failedLoginsPagination" class="d-flex justify-content-between align-items-center px-4 py-2 border-top" style="display:none;">
-    <span class="small text-muted" id="failedLoginsPageInfo"></span>
-    <div class="d-flex align-items-center gap-1">
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="failedLoginsPrev">Previous</button>
-      <div class="btn-group" id="failedLoginsPageNumbers"></div>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="failedLoginsNext">Next</button>
-    </div>
-  </div>
 </div>
 {% endif %}
-
-<script>
-(function () {
-  var pageSize = 3;
-  var rows = Array.prototype.slice.call(document.querySelectorAll('#failedLoginsTable .failed-login-row'));
-  if (!rows.length) return;
-
-  var totalPages = Math.ceil(rows.length / pageSize);
-  var currentPage = 1;
-  var pagination = document.getElementById('failedLoginsPagination');
-  var pageInfo = document.getElementById('failedLoginsPageInfo');
-  var pageNumbers = document.getElementById('failedLoginsPageNumbers');
-  var prevBtn = document.getElementById('failedLoginsPrev');
-  var nextBtn = document.getElementById('failedLoginsNext');
-
-  function goToPage(n) {
-    currentPage = n;
-    render();
-  }
-
-  function renderPageNumbers() {
-    pageNumbers.innerHTML = '';
-    for (var n = 1; n <= totalPages; n++) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = n;
-      btn.className = 'btn btn-sm ' + (n === currentPage ? 'btn-teal' : 'btn-outline-secondary');
-      btn.addEventListener('click', (function (page) {
-        return function () { goToPage(page); };
-      })(n));
-      pageNumbers.appendChild(btn);
-    }
-  }
-
-  function render() {
-    var start = (currentPage - 1) * pageSize;
-    var end = start + pageSize;
-    rows.forEach(function (row, i) {
-      row.style.display = (i >= start && i < end) ? '' : 'none';
-    });
-    pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages + ' (' + rows.length + ' attempts)';
-    prevBtn.disabled = currentPage === 1;
-    nextBtn.disabled = currentPage === totalPages;
-    renderPageNumbers();
-  }
-
-  if (totalPages > 1) {
-    pagination.style.display = 'flex';
-  }
-
-  prevBtn.addEventListener('click', function () {
-    if (currentPage > 1) { currentPage--; render(); }
-  });
-  nextBtn.addEventListener('click', function () {
-    if (currentPage < totalPages) { currentPage++; render(); }
-  });
-
-  render();
-})();
-</script>
 
 <!-- Users -->
 {% for row in user_rows %}

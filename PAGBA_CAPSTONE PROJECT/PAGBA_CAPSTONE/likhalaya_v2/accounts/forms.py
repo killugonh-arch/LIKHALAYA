@@ -1,4 +1,3 @@
-import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from .models import CustomUser
@@ -14,24 +13,17 @@ class RegisterForm(UserCreationForm):
 
     class Meta:
         model = CustomUser
-        # Username is intentionally not part of the visible signup form —
-        # it's auto-generated from the email address in save() below so
-        # the model's (still-required) username field is populated without
-        # asking the user to pick one.
-        fields = ['first_name', 'last_name', 'email', 'password1', 'password2']
+        fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
 
-    def _generate_username(self, email):
-        base = re.sub(r'[^a-zA-Z0-9._]', '', email.split('@')[0]) or 'user'
-        base = base[:25] or 'user'
-        # Same "abandoned, never-verified signup" cleanup as before, just
-        # keyed on the generated candidate instead of a user-typed value.
-        CustomUser.all_objects.filter(username=base, is_active=False).delete()
-        candidate = base
-        suffix = 0
-        while CustomUser.all_objects.filter(username=candidate, is_active=True).exists():
-            suffix += 1
-            candidate = f'{base}{suffix}'
-        return candidate
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        # If a previous signup attempt used this username but never verified
+        # its email (is_active=False), it was abandoned — clear it out so
+        # the person isn't permanently blocked from using their own username.
+        CustomUser.all_objects.filter(username=username, is_active=False).delete()
+        if CustomUser.all_objects.filter(username=username, is_active=True).exists():
+            raise forms.ValidationError('A user with that username already exists.')
+        return username
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -55,13 +47,6 @@ class RegisterForm(UserCreationForm):
         # re-type their password every time.
         self.fields['password1'].widget.render_value = True
         self.fields['password2'].widget.render_value = True
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.username = self._generate_username(self.cleaned_data['email'])
-        if commit:
-            user.save()
-        return user
 
 class OTPVerifyForm(forms.Form):
     code = forms.CharField(
