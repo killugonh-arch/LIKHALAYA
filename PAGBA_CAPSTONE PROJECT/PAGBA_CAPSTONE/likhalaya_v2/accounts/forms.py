@@ -62,6 +62,16 @@ class OTPVerifyForm(forms.Form):
 
 
 class LoginForm(AuthenticationForm):
+    username = forms.CharField(
+        label='Username or Email',
+        widget=forms.TextInput(attrs={'autofocus': True}),
+    )
+
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        'invalid_login': 'Please enter a correct username/email and password. Note that both fields may be case-sensitive.',
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():

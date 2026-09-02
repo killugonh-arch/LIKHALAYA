@@ -414,10 +414,10 @@
           {% csrf_token %}
 
           <div class="auth-input-group">
-            <label for="id_username" class="auth-input-label">Username</label>
+            <label for="id_username" class="auth-input-label">Username or Email</label>
             <div class="auth-input-wrap">
               <i class="fas fa-user auth-input-icon"></i>
-              <input type="text" name="username" id="id_username" class="auth-input" placeholder="Enter your username" autofocus
+              <input type="text" name="username" id="id_username" class="auth-input" placeholder="Enter your username or email" autofocus autocapitalize="none" autocomplete="username"
                      value="{{ form.username.value|default:'' }}">
             </div>
             {% if form.username.errors %}<div class="auth-field-error">{{ form.username.errors.0 }}</div>{% endif %}

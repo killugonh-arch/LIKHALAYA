@@ -5,7 +5,6 @@
 
 {% block extra_css %}
 <style>
-.about-hero { background: linear-gradient(135deg, var(--teal), #2D7A73); padding: 64px 0; }
 .mission-card { background: #fff; border-radius: 16px; padding: 32px; border-left: 4px solid var(--gold); box-shadow: 0 4px 16px rgba(0,0,0,.06); height: 100%; }
 .person-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.06); text-align: center; padding: 28px 20px; transition: transform .2s; }
 .person-card:hover { transform: translateY(-4px); }
@@ -29,14 +28,7 @@
 
 {% block content %}
 <!-- Hero -->
-<div class="about-hero text-white text-center">
-  <div class="container">
-    <h2 class="fw-bold mb-3" style="font-family:'Playfair Display',serif;font-size:40px;">About Likhalaya</h2>
-    <p class="lead mb-0 mx-auto" style="max-width:580px;color:rgba(255,255,255,.85);">
-      Empowering PDL artisans from Carigara District Jail through handcrafted goods and meaningful livelihood programs.
-    </p>
-  </div>
-</div>
+{% include 'partials/page_hero.html' with crumb='About' icon='fa-circle-info' title='About Likhalaya' subtitle='Discover the story, purpose, and people behind Likhalaya.' %}
 
 <!-- Mission & Vision -->
 <div class="container py-5">

@@ -228,6 +228,26 @@ body.dark-mode {
 
 body.dark-mode { background: var(--dm-bg); color: var(--dm-text); }
 
+/* Flip the design-system tokens themselves so every component built on
+   var(--text-primary), var(--surface-white), var(--border), etc. — KPI
+   cards, panels, tables, greeting header — switches automatically instead
+   of silently rendering dark-on-dark / light-on-light text. */
+body.dark-mode {
+  --text-primary: var(--dm-text);
+  --text-secondary: var(--dm-text-dim);
+  --text-muted: var(--dm-text-mute);
+  --surface-white: var(--dm-surface);
+  --surface-subtle: var(--dm-surface-2);
+  --border: var(--dm-border);
+  --brand-green: var(--dm-teal);
+  --brand-green-hover: #3fb3a8;
+  --brand-green-light: rgba(79,209,197,.14);
+  --danger: var(--dm-danger);
+  --danger-bg: rgba(255,107,107,.12);
+  --warning: var(--dm-warning);
+  --warning-bg: rgba(208,136,78,.14);
+}
+
 /* Topbar */
 body.dark-mode .dash-topbar { background: var(--dm-surface); border-color: var(--dm-border); }
 body.dark-mode .dash-topbar .topbar-title { color: var(--dm-teal); }
@@ -291,7 +311,7 @@ body.dark-mode .badge.text-dark,
 body.dark-mode .badge.bg-warning,
 body.dark-mode .badge-status.bg-warning,
 body.dark-mode .toast.bg-warning { background: #D0884E !important; color: #fff !important; }
-body.dark-mode a { color: var(--dm-teal); }
+body.dark-mode a:not(.ds-btn):not(.btn):not(.sidebar-link):not(.dropdown-item):not(.page-link) { color: var(--dm-teal); }
 body.dark-mode hr { border-color: var(--dm-border); opacity: 1; }
 
 /* Breadcrumb */

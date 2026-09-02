@@ -2,19 +2,103 @@
 {% load humanize %}
 {% block title %}My Orders – Likhalaya{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
+/* ============ Hero (shared Likhalaya hero system) ============ */
+.mo-hero {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  background: linear-gradient(150deg, #0F3D39 0%, #1E5F5A 55%, #2D7A73 100%);
+  padding: 64px 0 92px;
+  text-align: center;
+}
+.mo-hero::before,
+.mo-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.08);
+  pointer-events: none;
+}
+.mo-hero::before { width: 420px; height: 420px; top: -220px; left: -140px; }
+.mo-hero::after { width: 320px; height: 320px; bottom: -180px; right: -100px; }
+.mo-hero-dots {
+  position: absolute;
+  top: 24px; right: 8%;
+  width: 120px; height: 90px;
+  background-image: radial-gradient(rgba(201,132,26,.35) 1.5px, transparent 1.5px);
+  background-size: 14px 14px;
+  pointer-events: none;
+}
+.mo-hero-icon {
+  position: relative;
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  background: rgba(201,132,26,.18);
+  border: 1px solid rgba(201,132,26,.35);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.mo-hero-icon i { color: var(--gold-lt); font-size: 22px; }
+.mo-hero h1 {
+  position: relative;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 32px;
+  color: #fff;
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+.mo-hero p {
+  position: relative;
+  color: rgba(255,255,255,.78);
+  font-size: 14.5px;
+  max-width: 460px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+.mo-hero-curve {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 100vw;
+  height: 70px;
+  display: block;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 /* ============ Page shell ============ */
-.mo-wrap { max-width: 1100px; }
-.mo-title { font-family: 'Playfair Display', serif; color: var(--teal); }
-.mo-subtitle { color: #8b9490; }
+.mo-page-bg { background: #f6f8f7; padding-bottom: 48px; }
+.mo-wrap { max-width: 1140px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 2; }
+
+.mo-back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  background: #fff;
+  border: 1.5px solid #dceae1;
+  border-radius: 12px;
+  font-size: 13.5px; font-weight: 700; color: var(--teal);
+  text-decoration: none;
+  margin: 28px 0 18px;
+  box-shadow: 0 2px 10px rgba(15,61,57,.06);
+  transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.mo-back-btn i { font-size: 12px; }
+.mo-back-btn:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+  transform: translateX(-2px);
+}
 
 /* ============ Filters ============ */
 .mo-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 28px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 @media (max-width: 575px) {
   .mo-filters {
@@ -27,18 +111,18 @@
   .mo-filters .mo-filter-btn { flex-shrink: 0; }
 }
 .mo-filter-btn {
-  height: 38px;
-  min-width: 92px;
+  height: 42px;
+  min-width: 96px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 18px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 0 20px;
+  border-radius: 24px;
+  font-size: 13.5px;
+  font-weight: 700;
   text-decoration: none;
   transition: all .22s ease;
-  border: 1.5px solid #e5e5e5;
+  border: 1.5px solid #e2e6e4;
   color: #5b6663;
   background: #fff;
 }
@@ -51,35 +135,34 @@
   background: var(--gold);
   border-color: var(--gold);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(201,132,26,.3);
+  box-shadow: 0 6px 16px rgba(201,132,26,.3);
 }
 .mo-filter-btn.active:hover { color: #fff; transform: none; }
 
 /* ============ Card container ============ */
 .mo-card {
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(0,0,0,.06);
+  border-radius: 22px;
+  box-shadow: 0 16px 44px rgba(15,61,57,.10);
   overflow: hidden;
 }
 
 /* ============ Table (desktop/tablet) ============ */
-.mo-table-scroll { max-height: 640px; overflow-y: auto; }
-.mo-table { width: 100%; font-size: 13.5px; border-collapse: separate; border-spacing: 0; }
+.mo-table-scroll { overflow-x: auto; }
+.mo-table { width: 100%; min-width: 640px; font-size: 14.5px; border-collapse: separate; border-spacing: 0; }
 .mo-table thead th {
-  position: sticky; top: 0; z-index: 3;
   background: #f8f9f8;
   color: #4b5563;
-  font-size: 11.5px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: .4px;
   font-weight: 700;
-  padding: 14px 16px;
+  padding: 18px 18px;
   border-bottom: 1px solid #eceeec;
   white-space: nowrap;
 }
-.mo-table th.mo-col-order { padding-left: 24px; }
-.mo-table th.mo-col-total { text-align: right; }
+.mo-table th.mo-col-order { padding-left: 28px; }
+.mo-table th.mo-col-total { text-align: right; padding-right: 28px; }
 .mo-table th.mo-col-items,
 .mo-table th.mo-col-status { text-align: center; }
 
@@ -87,13 +170,13 @@
 .mo-table tbody tr:nth-child(even) { background: #fafbfa; }
 .mo-table tbody tr:hover { background: #f2f6f4; }
 .mo-table tbody td {
-  padding: 16px;
+  padding: 18px;
   border-bottom: 1px solid #f0f1ef;
   vertical-align: middle;
 }
 .mo-table tbody tr:last-child td { border-bottom: none; }
-.mo-table td.mo-col-order { padding-left: 24px; }
-.mo-table td.mo-col-total { text-align: right; }
+.mo-table td.mo-col-order { padding-left: 28px; }
+.mo-table td.mo-col-total { text-align: right; padding-right: 28px; }
 .mo-table td.mo-col-items,
 .mo-table td.mo-col-status { text-align: center; }
 
@@ -109,11 +192,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 84px;
-  height: 26px;
-  padding: 0 12px;
+  min-width: 90px;
+  height: 28px;
+  padding: 0 14px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: .2px;
 }
@@ -125,21 +208,21 @@
 .mo-status-cancelled  { background: rgba(192,57,43,.14); color: #c0392b; }
 
 /* ============ Mobile cards ============ */
-.mo-cards { display: none; padding: 12px; }
+.mo-cards { display: none; padding: 14px; }
 .mo-order-card {
   border: 1px solid #eceeec;
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 18px;
   margin-bottom: 12px;
   cursor: pointer;
   transition: box-shadow .18s ease, transform .18s ease;
 }
 .mo-order-card:last-child { margin-bottom: 0; }
 .mo-order-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.08); transform: translateY(-1px); }
-.mo-order-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.mo-order-card-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; color: #5b6663; }
+.mo-order-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.mo-order-card-row { display: flex; justify-content: space-between; font-size: 13.5px; padding: 6px 0; color: #5b6663; }
 .mo-order-card-row .mo-card-label { color: #8b9490; }
-.mo-order-card-row .mo-card-value { font-weight: 600; color: #1a2420; }
+.mo-order-card-row .mo-card-value { font-weight: 700; color: #1a2420; }
 
 /* ============ Pagination ============ */
 .mo-pagination {
@@ -148,19 +231,19 @@
   justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
-  padding: 20px 16px;
+  padding: 22px 16px;
   border-top: 1px solid #f0f1ef;
 }
 .mo-page-btn {
-  min-width: 36px;
-  height: 36px;
+  min-width: 38px;
+  height: 38px;
   padding: 0 10px;
-  border-radius: 9px;
-  border: 1.5px solid #e5e5e5;
+  border-radius: 10px;
+  border: 1.5px solid #e2e6e4;
   background: #fff;
   color: #5b6663;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -180,123 +263,141 @@
   .mo-table-wrap { display: none; }
   .mo-cards { display: block; }
 }
-@media (min-width: 768px) {
-  .mo-table thead th, .mo-table tbody td { padding: 14px 12px; }
+@media (max-width: 576px) {
+  .mo-hero { padding: 44px 0 68px; }
+  .mo-hero h1 { font-size: 24px; }
+  .mo-hero p { font-size: 13px; padding: 0 12px; }
+  .mo-wrap { width: calc(100% - 32px); max-width: none; }
+  .mo-back-btn { margin: 20px 0 16px; }
 }
 </style>
+{% endblock %}
 
-<div class="container py-5 mo-wrap">
-  <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-sm rounded-3 mb-3">
-    <i class="fas fa-arrow-left me-1"></i>Back to Profile
-  </a>
-  <h3 class="fw-bold mb-1 mo-title">My Orders</h3>
-  <p class="small mb-4 mo-subtitle">Track and manage your purchase history</p>
-
-  <div class="mo-filters">
-    <a href="{% url 'orders:my_orders' %}" class="mo-filter-btn {% if not status_filter %}active{% endif %}">All</a>
-    {% for s, l in status_choices %}
-    <a href="?status={{ s }}" class="mo-filter-btn {% if status_filter == s %}active{% endif %}">{{ l }}</a>
-    {% endfor %}
+{% block content %}
+<div class="mo-hero">
+  <div class="mo-hero-dots"></div>
+  <div class="container">
+    <div class="mo-hero-icon"><i class="fas fa-box"></i></div>
+    <h1>My Orders</h1>
+    <p>Track and manage your purchase history.</p>
   </div>
+  <svg class="mo-hero-curve" viewBox="0 0 1440 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" width="100%" height="70" style="display:block;">
+    <path d="M0,40 C360,100 1080,100 1440,40 L1440,100 L0,100 Z" fill="#f6f8f7"></path>
+  </svg>
+</div>
 
-  {% if orders %}
-  <div class="mo-card">
+<div class="mo-page-bg">
+  <div class="mo-wrap">
+    <a href="{% url 'accounts:profile' %}" class="mo-back-btn">
+      <i class="fas fa-arrow-left"></i> Back to Profile
+    </a>
 
-    <!-- ============ DESKTOP / TABLET TABLE ============ -->
-    <div class="mo-table-wrap">
-      <div class="mo-table-scroll">
-        <table class="mo-table">
-          <thead>
-            <tr>
-              <th class="mo-col-order">Order #</th>
-              <th class="mo-col-items">Items</th>
-              <th class="mo-col-total">Total</th>
-              <th>Payment</th>
-              <th class="mo-col-status">Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody id="moTableBody">
-            {% for order in orders %}
-            <tr class="mo-order-item" data-idx="{{ forloop.counter0 }}" onclick="window.location='{% url 'orders:order_detail' order.pk %}'">
-              <td class="mo-col-order">
-                <a href="{% url 'orders:order_detail' order.pk %}" class="mo-order-link" onclick="event.stopPropagation();">{{ order.order_number }}</a>
-              </td>
-              <td class="mo-col-items">{{ order.items.count }} item{{ order.items.count|pluralize }}</td>
-              <td class="mo-col-total fw-bold" style="color:var(--gold);">₱{{ order.total|floatformat:0|intcomma }}</td>
-              <td>{{ order.get_payment_method_display }}</td>
-              <td class="mo-col-status">
-                <span class="mo-status-badge
-                  {% if order.status == 'pending' %}mo-status-pending
-                  {% elif order.status == 'confirmed' %}mo-status-confirmed
-                  {% elif order.status == 'processing' %}mo-status-processing
-                  {% elif order.status == 'shipped' %}mo-status-shipped
-                  {% elif order.status == 'delivered' %}mo-status-delivered
-                  {% else %}mo-status-cancelled{% endif %}">
-                  {{ order.get_status_display }}
-                </span>
-              </td>
-              <td class="text-muted">{{ order.created_at|date:"M d, Y" }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ============ MOBILE CARDS ============ -->
-    <div class="mo-cards" id="moCardsBody">
-      {% for order in orders %}
-      <div class="mo-order-card mo-order-item" data-idx="{{ forloop.counter0 }}" onclick="window.location='{% url 'orders:order_detail' order.pk %}'">
-        <div class="mo-order-card-top">
-          <a href="{% url 'orders:order_detail' order.pk %}" class="mo-order-link" style="font-size:14.5px;" onclick="event.stopPropagation();">{{ order.order_number }}</a>
-          <span class="mo-status-badge
-            {% if order.status == 'pending' %}mo-status-pending
-            {% elif order.status == 'confirmed' %}mo-status-confirmed
-            {% elif order.status == 'processing' %}mo-status-processing
-            {% elif order.status == 'shipped' %}mo-status-shipped
-            {% elif order.status == 'delivered' %}mo-status-delivered
-            {% else %}mo-status-cancelled{% endif %}">
-            {{ order.get_status_display }}
-          </span>
-        </div>
-        <div class="mo-order-card-row">
-          <span class="mo-card-label">Items</span>
-          <span class="mo-card-value">{{ order.items.count }} item{{ order.items.count|pluralize }}</span>
-        </div>
-        <div class="mo-order-card-row">
-          <span class="mo-card-label">Total</span>
-          <span class="mo-card-value" style="color:var(--gold);">₱{{ order.total|floatformat:0|intcomma }}</span>
-        </div>
-        <div class="mo-order-card-row">
-          <span class="mo-card-label">Payment</span>
-          <span class="mo-card-value">{{ order.get_payment_method_display }}</span>
-        </div>
-        <div class="mo-order-card-row">
-          <span class="mo-card-label">Date</span>
-          <span class="mo-card-value">{{ order.created_at|date:"M d, Y" }}</span>
-        </div>
-      </div>
+    <div class="mo-filters">
+      <a href="{% url 'orders:my_orders' %}" class="mo-filter-btn {% if not status_filter %}active{% endif %}">All</a>
+      {% for s, l in status_choices %}
+      <a href="?status={{ s }}" class="mo-filter-btn {% if status_filter == s %}active{% endif %}">{{ l }}</a>
       {% endfor %}
     </div>
 
-    <!-- ============ PAGINATION (JS-driven, client-side) ============ -->
-    <nav class="mo-pagination" id="moPagination" aria-label="Orders pagination" style="display:none;"></nav>
-  </div>
-  {% else %}
-  <div class="mo-empty mo-card">
-    <div style="font-size:64px;margin-bottom:16px;">📦</div>
-    {% if status_filter %}
-    <h4 class="fw-bold text-muted mb-2">No {{ status_filter|title }} Orders</h4>
-    <p class="text-muted small mb-4">You don't have any orders with this status.</p>
-    <a href="{% url 'orders:my_orders' %}" class="btn btn-outline-secondary rounded-3">Clear Filter</a>
+    {% if orders %}
+    <div class="mo-card">
+
+      <!-- ============ DESKTOP / TABLET TABLE ============ -->
+      <div class="mo-table-wrap">
+        <div class="mo-table-scroll">
+          <table class="mo-table">
+            <thead>
+              <tr>
+                <th class="mo-col-order">Order #</th>
+                <th class="mo-col-items">Items</th>
+                <th class="mo-col-total">Total</th>
+                <th>Payment</th>
+                <th class="mo-col-status">Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="moTableBody">
+              {% for order in orders %}
+              <tr class="mo-order-item" data-idx="{{ forloop.counter0 }}" onclick="window.location='{% url 'orders:order_detail' order.pk %}'">
+                <td class="mo-col-order">
+                  <a href="{% url 'orders:order_detail' order.pk %}" class="mo-order-link" onclick="event.stopPropagation();">{{ order.order_number }}</a>
+                </td>
+                <td class="mo-col-items">{{ order.items.count }} item{{ order.items.count|pluralize }}</td>
+                <td class="mo-col-total fw-bold" style="color:var(--gold);">₱{{ order.total|floatformat:0|intcomma }}</td>
+                <td>{{ order.get_payment_method_display }}</td>
+                <td class="mo-col-status">
+                  <span class="mo-status-badge
+                    {% if order.status == 'pending' %}mo-status-pending
+                    {% elif order.status == 'confirmed' %}mo-status-confirmed
+                    {% elif order.status == 'processing' %}mo-status-processing
+                    {% elif order.status == 'shipped' %}mo-status-shipped
+                    {% elif order.status == 'delivered' %}mo-status-delivered
+                    {% else %}mo-status-cancelled{% endif %}">
+                    {{ order.get_status_display }}
+                  </span>
+                </td>
+                <td class="text-muted">{{ order.created_at|date:"M d, Y" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ MOBILE CARDS ============ -->
+      <div class="mo-cards" id="moCardsBody">
+        {% for order in orders %}
+        <div class="mo-order-card mo-order-item" data-idx="{{ forloop.counter0 }}" onclick="window.location='{% url 'orders:order_detail' order.pk %}'">
+          <div class="mo-order-card-top">
+            <a href="{% url 'orders:order_detail' order.pk %}" class="mo-order-link" style="font-size:14.5px;" onclick="event.stopPropagation();">{{ order.order_number }}</a>
+            <span class="mo-status-badge
+              {% if order.status == 'pending' %}mo-status-pending
+              {% elif order.status == 'confirmed' %}mo-status-confirmed
+              {% elif order.status == 'processing' %}mo-status-processing
+              {% elif order.status == 'shipped' %}mo-status-shipped
+              {% elif order.status == 'delivered' %}mo-status-delivered
+              {% else %}mo-status-cancelled{% endif %}">
+              {{ order.get_status_display }}
+            </span>
+          </div>
+          <div class="mo-order-card-row">
+            <span class="mo-card-label">Items</span>
+            <span class="mo-card-value">{{ order.items.count }} item{{ order.items.count|pluralize }}</span>
+          </div>
+          <div class="mo-order-card-row">
+            <span class="mo-card-label">Total</span>
+            <span class="mo-card-value" style="color:var(--gold);">₱{{ order.total|floatformat:0|intcomma }}</span>
+          </div>
+          <div class="mo-order-card-row">
+            <span class="mo-card-label">Payment</span>
+            <span class="mo-card-value">{{ order.get_payment_method_display }}</span>
+          </div>
+          <div class="mo-order-card-row">
+            <span class="mo-card-label">Date</span>
+            <span class="mo-card-value">{{ order.created_at|date:"M d, Y" }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- ============ PAGINATION (JS-driven, client-side) ============ -->
+      <nav class="mo-pagination" id="moPagination" aria-label="Orders pagination" style="display:none;"></nav>
+    </div>
     {% else %}
-    <h4 class="fw-bold text-muted mb-2">No Orders Yet</h4>
-    <p class="text-muted small mb-4">You haven't placed any orders. Explore our handcrafted products!</p>
-    <a href="{% url 'store:shop' %}" class="btn btn-gold btn-lg px-5 rounded-3">Start Shopping</a>
+    <div class="mo-empty mo-card">
+      <div style="font-size:64px;margin-bottom:16px;">📦</div>
+      {% if status_filter %}
+      <h4 class="fw-bold text-muted mb-2">No {{ status_filter|title }} Orders</h4>
+      <p class="text-muted small mb-4">You don't have any orders with this status.</p>
+      <a href="{% url 'orders:my_orders' %}" class="btn btn-outline-secondary rounded-3">Clear Filter</a>
+      {% else %}
+      <h4 class="fw-bold text-muted mb-2">No Orders Yet</h4>
+      <p class="text-muted small mb-4">You haven't placed any orders. Explore our handcrafted products!</p>
+      <a href="{% url 'store:shop' %}" class="btn btn-gold btn-lg px-5 rounded-3">Start Shopping</a>
+      {% endif %}
+    </div>
     {% endif %}
   </div>
-  {% endif %}
 </div>
 
 <script>

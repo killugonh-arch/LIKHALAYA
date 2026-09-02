@@ -31,26 +31,50 @@ body { background: #F6F8FA; }
 }
 .profile-hero-inner { position: relative; z-index: 2; }
 
+/* Subtle decorative language shared with the Contact-page hero */
+.profile-hero-decor { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.profile-hero-decor .ring { position: absolute; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.10); }
+.profile-hero-decor .ring.r1 { width: 160px; height: 160px; bottom: -70px; left: 6%; border-color: rgba(232,168,42,.16); }
+.profile-hero-decor .dot-grid { position: absolute; top: 22px; right: 6%; display: grid; grid-template-columns: repeat(4, 6px); gap: 9px; }
+.profile-hero-decor .dot-grid span { width: 5px; height: 5px; border-radius: 50%; background: rgba(232,168,42,.30); }
+.profile-hero-decor .curve-line { position: absolute; width: 300px; height: 300px; border: 1px dashed rgba(255,255,255,.08); border-radius: 50%; top: 30%; right: 18%; transform: translate(30%, -30%); }
+@media (max-width: 767px) {
+  .profile-hero-decor .ring, .profile-hero-decor .curve-line { opacity: .5; }
+  .profile-hero-decor .dot-grid { top: 16px; right: 5%; }
+}
+
+/* Subtle curved transition into the light page background */
+.profile-hero-wave { position: absolute; left: 0; right: 0; bottom: -1px; line-height: 0; z-index: 1; }
+.profile-hero-wave svg { display: block; width: 100%; height: 28px; }
+
 .profile-avatar {
-  width: 132px; height: 132px;
+  width: 144px; height: 144px;
   border-radius: 50%;
-  border: 4px solid #fff;
-  box-shadow: 0 12px 32px rgba(0,0,0,.28);
+  border: 5px solid #fff;
+  box-shadow: 0 14px 36px rgba(0,0,0,.30);
   object-fit: cover;
   background: var(--gold);
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 46px; font-weight: 700;
+  color: #fff; font-size: 50px; font-weight: 700;
   flex-shrink: 0;
 }
 .profile-name {
   font-family: 'Playfair Display', serif;
+  font-weight: 800;
   font-size: clamp(28px, 4.2vw, 42px);
   line-height: 1.15;
   color: #fff;
   overflow-wrap: break-word;
   word-break: break-word;
+  margin-bottom: 10px;
 }
-.profile-email { color: rgba(255,255,255,.85); font-size: 16px; }
+.profile-email {
+  color: rgba(255,255,255,.85);
+  font-size: 16px;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.profile-email i { color: rgba(232,168,42,.9); font-size: 14px; }
 .profile-role-badge {
   background: var(--gold);
   color: #fff;
@@ -65,8 +89,8 @@ body { background: #F6F8FA; }
 .profile-joined { color: rgba(255,255,255,.8); font-size: 14px; }
 
 /* ============ Dashboard grid ============ */
-.profile-shell { max-width: 1400px; margin: -56px auto 0; padding: 0 24px 64px; position: relative; z-index: 3; }
-.profile-grid { display: grid; grid-template-columns: 280px 1fr; gap: 32px; align-items: start; }
+.profile-shell { max-width: 1400px; margin: -68px auto 0; padding: 0 24px 64px; position: relative; z-index: 3; }
+.profile-grid { display: grid; grid-template-columns: 328px 1fr; gap: 32px; align-items: start; }
 
 /* ============ Cards ============ */
 .pcard {
@@ -84,7 +108,7 @@ body { background: #F6F8FA; }
 }
 
 /* ============ Sidebar nav ============ */
-.pnav-card { padding: 16px; }
+.pnav-card { padding: 18px; }
 .pnav { display: flex; flex-direction: column; gap: 4px; }
 .pnav-link {
   display: flex; align-items: center; gap: 12px;
@@ -117,15 +141,15 @@ body { background: #F6F8FA; }
   padding: 28px 40px 0;
   flex-wrap: wrap; gap: 12px;
 }
-.pinfo-card-title { font-size: 24px; font-weight: 700; color: #1a2420; margin: 0; }
-.pinfo-card-body { padding: 24px 40px 40px; }
+.pinfo-card-title { font-size: 24px; font-weight: 800; color: #1a2420; margin: 0; }
+.pinfo-card-body { padding: 20px 40px 28px; }
 
 .pfield-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
-.pfield { padding: 18px 0; border-bottom: 1px solid #f0f1ef; }
+.pfield { padding: 16px 0; border-bottom: 1px solid #f0f1ef; }
 .pfield.pfield-full { grid-column: 1 / -1; }
 .pfield:nth-last-child(-n+2) { border-bottom: none; }
 .pfield-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #8b9490; margin-bottom: 6px; }
-.pfield-value { font-size: 17px; font-weight: 600; color: #1a2420; }
+.pfield-value { font-size: 16.5px; font-weight: 600; color: #1a2420; }
 .pfield-value .text-danger { font-size: 14px; font-weight: 600; }
 
 /* ============ Buttons ============ */
@@ -171,8 +195,8 @@ body { background: #F6F8FA; }
 .loc-suggest-empty { padding: 8px 14px; font-size: 13px; color: #999; }
 
 /* ============ Responsive ============ */
-@media (max-width: 1100px) {
-  .profile-grid { grid-template-columns: 240px 1fr; gap: 24px; }
+@media (max-width: 1200px) {
+  .profile-grid { grid-template-columns: 280px 1fr; gap: 24px; }
 }
 @media (max-width: 900px) {
   .profile-grid { grid-template-columns: 1fr; }
@@ -185,7 +209,7 @@ body { background: #F6F8FA; }
   .profile-hero { padding: 40px 0 84px; text-align: center; }
   .profile-hero-inner .d-flex { flex-direction: column; align-items: center !important; text-align: center; padding-left: 0 !important; gap: 20px !important; }
   .pinfo-card-header { padding: 24px 24px 0; }
-  .pinfo-card-body { padding: 20px 24px 28px; }
+  .pinfo-card-body { padding: 20px 24px 24px; }
   .pfield-grid { grid-template-columns: 1fr; }
   .pfield:nth-last-child(-n+2) { border-bottom: 1px solid #f0f1ef; }
   .pfield:last-child { border-bottom: none; }
@@ -196,6 +220,12 @@ body { background: #F6F8FA; }
 
 {% block content %}
 <div class="profile-hero">
+  <div class="profile-hero-decor">
+    <span class="ring r1"></span>
+    <span class="dot-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+    <span class="curve-line"></span>
+  </div>
+
   <div class="container profile-hero-inner">
     <div class="d-flex align-items-start justify-content-start" style="gap: 32px; padding-left: 8px;">
       {% if user.avatar %}
@@ -206,14 +236,20 @@ body { background: #F6F8FA; }
       </div>
       {% endif %}
       <div style="min-width:0;">
-        <h3 class="fw-bold mb-2 profile-name">{{ user.get_full_name|default:user.username }}</h3>
-        <div class="profile-email"><i class="fas fa-envelope me-1"></i>{{ user.email }}</div>
-        <div class="d-flex align-items-center gap-2 flex-wrap" style="margin-top:14px;">
+        <h3 class="fw-bold profile-name">{{ user.get_full_name|default:user.username }}</h3>
+        <div class="profile-email"><i class="fas fa-envelope"></i>{{ user.email }}</div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
           <span class="profile-role-badge">{{ user.get_role_display }}</span>
           <span class="profile-joined">Joined {{ user.date_joined|date:"F Y" }}</span>
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="profile-hero-wave">
+    <svg viewBox="0 0 1440 28" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,18 C240,28 480,4 720,10 C960,16 1200,26 1440,14 L1440,28 L0,28 Z" fill="#F6F8FA"></path>
+    </svg>
   </div>
 </div>
 

@@ -1,46 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}Terms of Service – Likhalaya{% endblock %}
 
+{% load static %}
 {% block navbar %}{% endblock %}
 
-{% load static %}
 {% block extra_css %}
 <style>
-/* ============ Mini header bar (replaces full site navbar) ============ */
-.terms-topbar {
-  background: linear-gradient(150deg, #0F3D39 0%, #1E5F5A 55%, #2D7A73 100%);
-  padding: 18px 0;
-}
-.terms-topbar .brand-mark {
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  background: #fff;
-  padding: 6px;
-  display: flex; align-items: center; justify-content: center;
-}
-.terms-topbar .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
-.terms-topbar .brand-text .name {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  font-size: 17px;
-  color: #fff;
-  letter-spacing: .3px;
-  line-height: 1.15;
-}
-.terms-topbar .brand-text .tagline {
-  font-size: 11.5px;
-  color: rgba(255,255,255,.72);
-  font-weight: 500;
-}
-.terms-breadcrumb {
-  font-size: 13px;
-  color: rgba(255,255,255,.75);
-}
-.terms-breadcrumb a { color: rgba(255,255,255,.75); text-decoration: none; }
-.terms-breadcrumb a:hover { color: #fff; }
-.terms-breadcrumb .sep { margin: 0 8px; color: rgba(255,255,255,.4); }
-.terms-breadcrumb .current { color: #fff; font-weight: 600; }
-
 /* ============ Page background (60/30/10: white dominant) ============ */
 .terms-page-bg {
   background: linear-gradient(180deg, #eef6f1 0%, #ffffff 220px);
@@ -79,20 +44,7 @@
   box-shadow: 0 4px 14px rgba(15,61,57,.10);
 }
 
-/* ============ Hero ============ */
-.terms-hero { padding: 12px 0 8px; text-align: center; }
-.terms-hero h1 {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  font-size: 32px;
-  color: var(--teal);
-  margin-bottom: 8px;
-}
-.terms-hero p {
-  color: #6f7a76;
-  font-size: 15px;
-  margin-bottom: 18px;
-}
+/* ============ Updated pill ============ */
 .terms-updated-pill {
   display: inline-flex;
   align-items: center;
@@ -168,29 +120,12 @@
 @media (max-width: 767px) {
   .terms-section { flex-direction: column; padding: 22px 22px; gap: 14px; }
   .terms-section-icon { width: 50px; height: 50px; font-size: 19px; border-radius: 14px; }
-  .terms-hero h1 { font-size: 26px; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- ============ MINI TOP BAR ============ -->
-<div class="terms-topbar">
-  <div class="container d-flex align-items-center justify-content-between flex-wrap gap-3">
-    <a href="{% url 'store:home' %}" class="d-flex align-items-center gap-2 text-decoration-none">
-      <span class="brand-mark"><img src="{% static 'imgs/likhalaya.png' %}" alt="Likhalaya"></span>
-      <span class="brand-text">
-        <span class="d-block name">LIKHALAYA</span>
-        <span class="d-block tagline">PDL Marketplace</span>
-      </span>
-    </a>
-    <nav class="terms-breadcrumb">
-      <a href="{% url 'store:home' %}">Home</a>
-      <span class="sep">&rsaquo;</span>
-      <span class="current">Terms of Service</span>
-    </nav>
-  </div>
-</div>
+{% include 'partials/page_hero.html' with icon='fa-file-contract' title='Terms of Service' subtitle='Please review the terms and conditions for using Likhalaya.' %}
 
 <div class="terms-page-bg">
   <div class="terms-wrap pt-4">
@@ -198,14 +133,7 @@
     <a href="{% url 'accounts:register' %}" class="terms-back-top">
       <i class="fas fa-arrow-left"></i> Back
     </a>
-  </div>
-
-  <div class="terms-hero">
-    <div class="terms-wrap">
-      <h1>Terms of Service</h1>
-      <p>Please read these terms carefully before using Likhalaya.</p>
-      <span class="terms-updated-pill"><i class="fas fa-calendar-alt"></i> Last Updated &middot; July 2026</span>
-    </div>
+    <span class="terms-updated-pill"><i class="fas fa-calendar-alt"></i> Last Updated &middot; July 2026</span>
   </div>
 
   <div class="terms-wrap pt-4 pb-5">

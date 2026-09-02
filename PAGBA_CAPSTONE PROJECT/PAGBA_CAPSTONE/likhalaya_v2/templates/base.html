@@ -30,12 +30,53 @@
     .divider { width: 48px; height: 3px; background: var(--gold); border-radius: 2px; margin: 8px auto 28px; }
     .product-card { position: relative; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e0ece4; transition: box-shadow .25s, transform .25s; }
     .product-card:hover { box-shadow: 0 12px 32px rgba(0,0,0,.12); transform: translateY(-3px); }
-    .product-img { width: 100%; height: 190px; object-fit: cover; display: block; background: var(--sand); }
+
+    /* Fixed: square aspect-ratio crop so every product photo (regardless of
+       source dimensions/background) sits in an identical frame across the
+       grid, instead of the previous fixed-height crop that produced
+       inconsistent-looking cards when source images varied wildly in size. */
+    .product-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: var(--sand); }
+
     .product-price { font-family: 'Poppins', sans-serif; font-size: 22px; color: var(--gold); font-weight: 800; letter-spacing: .3px; }
-    .product-tag { font-size: 10px; font-weight: 600; color: var(--teal); text-transform: uppercase; letter-spacing: .6px; }
-    footer { background: var(--teal); color: rgba(255,255,255,.8); }
-    footer a { color: rgba(255,255,255,.7); text-decoration: none; }
+
+    /* Fixed: category label is now a small pill/badge instead of plain caps
+       text, so it doesn't visually compete with the product title. */
+    .product-tag {
+      display: inline-block; font-size: 10px; font-weight: 700; color: var(--teal);
+      text-transform: uppercase; letter-spacing: .6px; background: rgba(30,95,90,.08);
+      padding: 3px 10px; border-radius: 20px; margin-bottom: 4px;
+    }
+
+    footer { position: relative; background: linear-gradient(180deg, var(--teal) 0%, #163f3c 100%); color: rgba(255,255,255,.72); }
+    footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--gold) 0%, var(--gold-lt) 50%, var(--gold) 100%); }
+    footer a { color: rgba(255,255,255,.72); text-decoration: none; }
     footer a:hover { color: var(--gold-lt); }
+    .footer-brand-name { font-family:'Poppins',sans-serif; font-size: 22px; letter-spacing: .5px; }
+    .footer-brand-logo { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+    .footer-heading { font-size: 12.5px; letter-spacing: .8px; color: var(--gold-lt); }
+    .footer-body-text { color: rgba(255,255,255,.65); line-height: 1.7; }
+    .footer-link-list { list-style: none; padding: 0; margin: 0; }
+    .footer-link-list li { margin-bottom: 10px; }
+    .footer-link-list a { position: relative; color: rgba(255,255,255,.75); display: inline-flex; align-items: center; gap: 6px; transition: color .2s ease, transform .2s ease, padding-left .2s ease; }
+    .footer-link-list a::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 11px; color: var(--gold-lt); opacity: 0; transform: translateX(-4px); transition: opacity .2s ease, transform .2s ease; }
+    .footer-link-list a:hover { color: var(--gold-lt); padding-left: 4px; }
+    .footer-link-list a:hover::before { opacity: 1; transform: translateX(0); }
+    .footer-contact-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+    .footer-contact-icon { width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--gold-lt); font-size: 12.5px; transition: background .2s ease, transform .2s ease; }
+    .footer-contact-item:hover .footer-contact-icon { background: rgba(232,168,42,.22); transform: translateY(-1px); }
+    .footer-contact-item .footer-contact-text { color: rgba(255,255,255,.75); line-height: 1.5; }
+    .footer-contact-item a.footer-contact-text:hover { color: var(--gold-lt); }
+    .footer-support-icon { width: 34px; height: 34px; border-radius: 50%; background: rgba(232,168,42,.14); display: flex; align-items: center; justify-content: center; color: var(--gold-lt); font-size: 13px; margin-bottom: 12px; }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,.10); margin-top: 8px; padding-top: 18px; }
+    .footer-bottom small { color: rgba(255,255,255,.5); }
+    @media (max-width: 991px) {
+      footer .row.g-4 > div { text-align: center; }
+      .footer-contact-item { justify-content: center; }
+      .footer-support-icon { margin-left: auto; margin-right: auto; }
+      .footer-brand-logos-wrap { justify-content: center; }
+      .footer-bottom { text-align: center; }
+      .footer-bottom .d-flex { flex-direction: column; align-items: center; gap: 6px !important; }
+    }
     .toast-container-fixed { position: fixed; top: 80px; right: 20px; z-index: 9999; min-width: 300px; }
     .utility-icon { color: var(--charcoal); font-size: 20px; line-height: 1; transition: color .15s; }
     .utility-icon:hover { color: var(--gold); }
@@ -45,7 +86,7 @@
     .user-chip:hover { color: var(--gold); }
     .user-email-text { font-size: 12.5px; color: var(--gray); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .user-chip:hover .user-email-text { color: var(--gold); }
-    .img-placeholder { height: 190px; background: var(--sand); display: flex; align-items: center; justify-content: center; font-size: 40px; }
+    .img-placeholder { aspect-ratio: 1 / 1; background: var(--sand); display: flex; align-items: center; justify-content: center; font-size: 40px; }
     .badge-gold { background: rgba(201,132,26,.2); color: var(--gold); border: 1px solid rgba(201,132,26,.4); font-size: 10px; border-radius: 20px; padding: 3px 10px; font-weight: 600; }
     .status-pending { background: #fff3cd; color: #856404; }
     .status-confirmed { background: #cff4fc; color: #055160; }
@@ -256,38 +297,52 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <!-- FOOTER -->
 {% block footer %}
-<footer class="mt-5 pt-5 pb-3">
+<footer class="mt-5 pt-5 pb-4">
   <div class="container">
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-2">
       <div class="col-lg-4">
-        <h5 class="fw-bold text-white mb-1" style="font-family:'Poppins',sans-serif;">LIKHALAYA</h5>
+        <div class="d-flex align-items-center gap-2 mb-2 footer-brand-logos-wrap">
+          <img src="{% static 'imgs/likhalaya.png' %}" alt="Likhalaya" class="footer-brand-logo" onerror="this.style.display='none'">
+          <h5 class="fw-bold text-white mb-0 footer-brand-name">LIKHALAYA</h5>
+        </div>
         <small style="color:rgba(255,255,255,.5);">PDL Marketplace · Carigara, Leyte</small>
-        <p class="mt-3 small">Empowering Persons Deprived of Liberty through creativity, craftsmanship, and opportunity.</p>
+        <p class="mt-3 small footer-body-text">Empowering Persons Deprived of Liberty through creativity, craftsmanship, and opportunity.</p>
       </div>
       <div class="col-lg-2 col-6">
-        <h6 class="text-uppercase small fw-bold mb-3" style="color:var(--gold-lt);">Quick Links</h6>
-        <ul class="list-unstyled small">
-          <li class="mb-2"><a href="{% url 'store:home' %}">Home</a></li>
-          <li class="mb-2"><a href="{% url 'store:shop' %}">Shop</a></li>
-          <li class="mb-2"><a href="{% url 'store:about' %}">About</a></li>
-          <li class="mb-2"><a href="{% url 'store:contact' %}">Contact</a></li>
+        <h6 class="text-uppercase fw-bold mb-3 footer-heading">Quick Links</h6>
+        <ul class="footer-link-list small">
+          <li><a href="{% url 'store:home' %}">Home</a></li>
+          <li><a href="{% url 'store:shop' %}">Shop</a></li>
+          <li><a href="{% url 'store:about' %}">About</a></li>
+          <li><a href="{% url 'store:contact' %}">Contact</a></li>
         </ul>
       </div>
       <div class="col-lg-3 col-6">
-        <h6 class="text-uppercase small fw-bold mb-3" style="color:var(--gold-lt);">Contact</h6>
-        <p class="small mb-2"><i class="fas fa-map-marker-alt me-2"></i>Carigara District Jail, Leyte</p>
-        <p class="small mb-2"><i class="fas fa-envelope me-2"></i>r8.carigaradj@bjmp.gov.ph</p>
-        <p class="small"><i class="fab fa-facebook me-2"></i><a href="https://www.facebook.com/BJMPCarigaraDistrictJailOfficial/" target="_blank">BJMP Carigara</a></p>
+        <h6 class="text-uppercase fw-bold mb-3 footer-heading">Contact</h6>
+        <div class="footer-contact-item">
+          <div class="footer-contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="small footer-contact-text">Carigara District Jail, Leyte</div>
+        </div>
+        <div class="footer-contact-item">
+          <div class="footer-contact-icon"><i class="fas fa-envelope"></i></div>
+          <div class="small footer-contact-text">r8.carigaradj@bjmp.gov.ph</div>
+        </div>
+        <div class="footer-contact-item">
+          <div class="footer-contact-icon"><i class="fab fa-facebook-f"></i></div>
+          <a href="https://www.facebook.com/BJMPCarigaraDistrictJailOfficial/" target="_blank" class="small footer-contact-text">BJMP Carigara</a>
+        </div>
       </div>
       <div class="col-lg-3">
-        <h6 class="text-uppercase small fw-bold mb-3" style="color:var(--gold-lt);">Support Rehabilitation</h6>
-        <p class="small">Every purchase helps provide livelihood opportunities for PDL artisans and supports their reintegration into society.</p>
+        <h6 class="text-uppercase fw-bold mb-3 footer-heading">Support Rehabilitation</h6>
+        <div class="footer-support-icon"><i class="fas fa-hands-helping"></i></div>
+        <p class="small footer-body-text mb-0">Every purchase helps provide livelihood opportunities for PDL artisans and supports their reintegration into society.</p>
       </div>
     </div>
-    <hr style="border-color:rgba(255,255,255,.1);">
-    <div class="d-flex justify-content-between flex-wrap gap-2">
-      <small style="color:rgba(255,255,255,.4);">© 2026 LIKHALAYA. All Rights Reserved.</small>
-      <small style="color:rgba(255,255,255,.4);">Developed by PAGBA · EVSU-Carigara Campus</small>
+    <div class="footer-bottom">
+      <div class="d-flex justify-content-between flex-wrap gap-2">
+        <small>© 2026 LIKHALAYA. All Rights Reserved.</small>
+        <small>Developed by PAGBA · EVSU-Carigara Campus</small>
+      </div>
     </div>
   </div>
 </footer>
@@ -301,4 +356,4 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 {% block extra_js %}{% endblock %}
 </body>
-</html>
+</html>  

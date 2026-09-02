@@ -3,12 +3,7 @@
 {% block title %}{{ category.name }} – Likhalaya{% endblock %}
 
 {% block content %}
-<div style="background:linear-gradient(135deg,var(--teal),#2D7A73);padding:40px 0;">
-  <div class="container text-white">
-    <h2 class="fw-bold mb-1" style="font-family:'Playfair Display',serif;">{{ category.name }}</h2>
-    <p class="mb-0" style="color:rgba(255,255,255,.75);">{{ category.description }}</p>
-  </div>
-</div>
+{% include 'partials/page_hero.html' with crumb=category.name icon='fa-table-cells-large' title=category.name subtitle=category.description|default:'Explore handcrafted products made with creativity and purpose.' %}
 <div class="container py-4">
   {% if products %}
   <div class="row g-3">
