@@ -4,165 +4,387 @@
 
 {% block extra_css %}
 <style>
-.cart-page-header { border-bottom: 1px solid #ece5d8; padding-bottom: 16px; margin-bottom: 24px; }
+/* ===== Page shell ===== */
+.cart-page-wrap { background: #F7F5EE; }
+.cart-page-container { max-width: 1320px; margin: 0 auto; }
 
-.cart-card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.05); overflow: hidden; }
-.cart-toolbar { background: var(--sand); }
+.cart-page-header { border-bottom: 1px solid #ece5d8; padding-bottom: 18px; margin-bottom: 28px; }
+.cart-page-header h3 { font-family:'Playfair Display',serif; color: var(--teal); }
 
-.cart-line { transition: background .15s; }
-.cart-line:hover { background: #fbfaf7; }
-.cart-line-img { width: 96px; height: 88px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
-.cart-line-img-placeholder { width: 96px; height: 88px; border-radius: 10px; background: var(--sand); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
-.cart-line-checkbox { width: 19px; height: 19px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+/* ===== Cart card ===== */
+.cart-card { border: none; border-radius: 18px; box-shadow: 0 4px 20px rgba(27,67,50,.06); overflow: hidden; background: #fff; }
 
-.cart-qty-group { display: inline-flex; align-items: center; border: 1.5px solid #e2ddd3; border-radius: 8px; overflow: hidden; }
-.cart-qty-btn { width: 32px; height: 32px; border: none; background: #fff; font-weight: 700; color: var(--teal); display: flex; align-items: center; justify-content: center; transition: background .15s; padding: 0; }
-.cart-qty-btn:hover:not(:disabled) { background: var(--sand); }
+/* ===== Toolbar / selection bar ===== */
+.cart-toolbar {
+  background: #eef4ef;
+  border-bottom: 1px solid #e2ece3;
+  padding: 16px 20px;
+  border-radius: 18px 18px 0 0;
+}
+.cart-toolbar .btn-select-all {
+  background: #fff;
+  border: 1.5px solid #cfe0d3;
+  color: var(--teal);
+  font-weight: 600;
+  font-size: 12.5px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  transition: all .18s ease;
+}
+.cart-toolbar .btn-select-all:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.cart-toolbar .selected-count-text {
+  color: var(--charcoal, #1B4332);
+  font-weight: 500;
+}
+.cart-toolbar .selected-count-text #selectedCount {
+  font-weight: 700;
+  color: var(--teal);
+}
+
+/* ===== Cart line item ===== */
+.cart-line {
+  transition: background .15s ease;
+  padding: 20px !important;
+}
+.cart-line:not(.cart-line-single):not(:last-of-type) {
+  border-bottom: 1px solid #f0ece2 !important;
+}
+@media (min-width: 992px) {
+  .cart-line:hover { background: #fbfaf5; }
+}
+
+.cart-line-img,
+.cart-line-img-placeholder {
+  width: 100px; height: 92px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.cart-line-img { object-fit: cover; border: 1px solid #f0ece2; }
+.cart-line-img-placeholder {
+  background: #eef4ef;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+
+.cart-line-checkbox {
+  width: 19px; height: 19px; margin-top: 4px; flex-shrink: 0; cursor: pointer;
+  accent-color: var(--teal);
+}
+
+.cart-item-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--charcoal, #1B4332);
+  text-decoration: none;
+  line-height: 1.35;
+}
+.cart-item-name:hover { color: var(--teal); text-decoration: underline; }
+
+.cart-item-category {
+  font-size: 12px;
+  color: var(--gray, #8a8a82);
+  margin-top: 3px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.cart-item-variant-badge {
+  display: inline-block;
+  background: #eef4ef;
+  border: 1px solid #d9e8dc;
+  color: var(--teal);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.cart-item-price {
+  color: var(--gold);
+  font-weight: 800;
+  font-family: 'Poppins', sans-serif;
+  margin-top: 8px;
+  font-size: 17px;
+}
+
+.stock-warning {
+  font-size: 11.5px;
+  color: #c9841a;
+  margin-top: 6px;
+  display: flex; align-items: center; gap: 5px;
+}
+
+/* ===== Quantity controls ===== */
+.cart-qty-group {
+  display: inline-flex; align-items: center;
+  border: 1.5px solid #e2ddd3;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fff;
+}
+.cart-qty-btn {
+  width: 32px; height: 32px; border: none; background: #fff;
+  font-weight: 700; color: var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+  padding: 0;
+}
+.cart-qty-btn:hover:not(:disabled) { background: var(--teal); color: #fff; }
 .cart-qty-btn:disabled { color: #ccc; cursor: not-allowed; }
-.cart-qty-value { width: 40px; text-align: center; font-weight: 700; font-size: 14px; border-left: 1.5px solid #e2ddd3; border-right: 1.5px solid #e2ddd3; height: 32px; line-height: 32px; }
+.cart-qty-value {
+  width: 42px; text-align: center; font-weight: 700; font-size: 14px;
+  border-left: 1.5px solid #e2ddd3; border-right: 1.5px solid #e2ddd3;
+  height: 32px; line-height: 32px;
+  color: var(--charcoal, #1B4332);
+}
 
-.remove-line-btn { font-size: 11px; color: #b5473c; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border: none; background: none; padding: 0; }
-.remove-line-btn:hover { color: #8e2f26; text-decoration: underline; }
+/* ===== Remove button ===== */
+.remove-line-btn {
+  font-size: 12px;
+  color: #a5493e;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid #f0d9d4;
+  background: #fdf5f4;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all .15s ease;
+  cursor: pointer;
+}
+.remove-line-btn:hover { background: #f6dedb; border-color: #e9bcb4; color: #8e2f26; }
 
-.stock-warning { font-size: 11px; color: #c9841a; }
+.cart-line-actions { min-width: 108px; }
 
-/* ===== Order summary (sticky on desktop) ===== */
-.summary-card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+/* ===== Continue shopping ===== */
+.cart-continue-shopping-wrap { padding: 18px 20px; border-top: 1px solid #f0ece2; }
+.btn-continue-shopping {
+  border: 1.5px solid var(--teal);
+  color: var(--teal);
+  background: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 9px 20px;
+  border-radius: 10px;
+  transition: all .18s ease;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-continue-shopping:hover {
+  background: #eef4ef;
+  color: var(--teal);
+  transform: translateX(-2px);
+}
+
+/* ===== Order summary ===== */
+.summary-card {
+  border: none; border-radius: 18px;
+  box-shadow: 0 4px 22px rgba(27,67,50,.08);
+  background: #fff;
+}
 .summary-sticky-wrap { position: sticky; top: 96px; }
-.summary-row { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 10px; }
-.summary-grand-total { font-size: 20px; color: var(--gold); font-family: 'Poppins', sans-serif; font-weight: 800; }
-.free-shipping-alert { font-size: 12px; border-radius: 10px; }
 
-.empty-cart-icon { font-size: 72px; margin-bottom: 16px; }
+.summary-title {
+  font-size: 17px;
+  color: var(--charcoal, #1B4332);
+}
 
+.summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 12px; }
+.summary-row .label { color: var(--gray, #8a8a82); }
+.summary-row .value { font-weight: 700; color: var(--charcoal, #1B4332); }
+.summary-row .value.shipping-free { color: #2f7d4f; }
+
+.summary-divider { border: none; border-top: 1.5px dashed #e6e0d2; margin: 18px 0; }
+
+.summary-grand-total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.summary-grand-total-label { font-weight: 700; font-size: 15px; color: var(--charcoal, #1B4332); }
+.summary-grand-total { font-size: 24px; color: var(--gold); font-family: 'Poppins', sans-serif; font-weight: 800; }
+
+.free-shipping-alert {
+  font-size: 12px; border-radius: 10px;
+  background: #eef4ef; border: 1px solid #d9e8dc; color: var(--teal);
+}
+
+.btn-checkout {
+  background: var(--gold);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 0;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  width: 100%;
+}
+.btn-checkout:hover {
+  background: #b0710f;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(201,132,26,.28);
+}
+.btn-checkout:disabled,
+.btn-checkout.disabled {
+  background: #cbb98f; cursor: not-allowed; transform: none; box-shadow: none;
+}
+
+.secure-checkout-note {
+  font-size: 11.5px;
+  color: var(--gray, #8a8a82);
+}
+
+/* ===== Empty cart ===== */
+.empty-cart-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(27,67,50,.06);
+  padding: 64px 24px;
+}
+.empty-cart-icon { font-size: 68px; margin-bottom: 14px; }
+
+/* ===== Responsive ===== */
 @media (max-width: 991.98px) {
   .summary-sticky-wrap { position: static; }
 }
 
 @media (max-width: 575.98px) {
-  .cart-line { flex-wrap: wrap; }
-  .cart-line-img, .cart-line-img-placeholder { width: 72px; height: 66px; }
-  .cart-line .fw-bold { font-size: 15px !important; }
-  .cart-line-actions { width: 100%; justify-content: space-between !important; align-items: center !important; flex-direction: row !important; margin-top: 8px; }
+  .cart-page-container { padding-left: 4px; padding-right: 4px; }
+  .cart-line { flex-wrap: wrap; padding: 16px !important; }
+  .cart-line-img, .cart-line-img-placeholder { width: 76px; height: 70px; }
+  .cart-item-name { font-size: 15px !important; }
+  .cart-line-actions {
+    width: 100%; justify-content: space-between !important;
+    align-items: center !important; flex-direction: row !important;
+    margin-top: 10px; min-width: 0;
+  }
   .cart-qty-value { font-size: 13px; }
+  .btn-checkout { font-size: 14px; padding: 13px 0; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <div class="cart-page-header">
-    <h3 class="fw-bold mb-1" style="font-family:'Playfair Display',serif;color:var(--teal);">Shopping Cart</h3>
-    <p class="text-muted small mb-0">{{ cart_items|length }} item{{ cart_items|length|pluralize }} in your cart</p>
-  </div>
+<div class="cart-page-wrap py-5">
+  <div class="container cart-page-container">
+    <div class="cart-page-header">
+      <h3 class="fw-bold mb-1">Shopping Cart</h3>
+      <p class="text-muted small mb-0">{{ cart_items|length }} item{{ cart_items|length|pluralize }} in your cart</p>
+    </div>
 
-  {% if cart %}
-  <div class="row g-4">
-    <div class="col-lg-8">
-      <div class="card cart-card">
-        {% if cart_items|length > 1 %}
-        <div class="d-flex align-items-center p-3 cart-toolbar">
-          <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline-secondary bg-white">
-            <i class="fas fa-check-square me-1"></i><span id="selectAllLabel">Deselect All</span>
-          </button>
-          <span class="text-muted small ms-3"><span id="selectedCount">{{ cart_items|length }}</span> of {{ cart_items|length }} selected</span>
-        </div>
-        {% endif %}
-
-        {% for item in cart_items %}
-        <div class="d-flex align-items-start gap-3 p-3 cart-line {% if not forloop.last %}border-bottom{% endif %}">
+    {% if cart %}
+    <div class="row g-4">
+      <div class="col-lg-9">
+        <div class="card cart-card">
           {% if cart_items|length > 1 %}
-          <input type="checkbox" class="form-check-input cart-item-checkbox cart-line-checkbox" data-item-key="{{ item.key }}" data-price="{{ item.total }}" checked>
-          {% else %}
-          <input type="checkbox" class="cart-item-checkbox d-none" data-item-key="{{ item.key }}" data-price="{{ item.total }}" checked>
-          {% endif %}
-
-          {% if item.product.image %}
-          <img src="{{ item.product.image.url }}" class="cart-line-img" alt="{{ item.product.name }}">
-          {% else %}
-          <div class="cart-line-img-placeholder">🎨</div>
-          {% endif %}
-
-          <div style="flex:1;min-width:0;">
-            <a href="{{ item.product.get_absolute_url }}" class="fw-bold text-decoration-none" style="font-size:16px;color:var(--charcoal);">{{ item.product.name }}</a>
-            <div class="text-muted small">
-              {{ item.product.category.name|default:"" }}
-              {% if item.size_display %}<span class="badge bg-light text-dark border ms-1">{{ item.size_display }}</span>{% endif %}
-            </div>
-            <div style="color:var(--gold);font-weight:700;margin-top:4px;font-size:16px;">₱{{ item.price|floatformat:0|intcomma }}</div>
-            {% if item.quantity >= item.product.stock %}
-            <div class="stock-warning mt-1"><i class="fas fa-exclamation-circle me-1"></i>Max available stock reached</div>
-            {% endif %}
-          </div>
-
-          <div class="d-flex flex-column align-items-end gap-3 cart-line-actions">
-            <form method="post" action="{% url 'orders:cart_remove' item.key %}">
-              {% csrf_token %}
-              <button type="submit" class="remove-line-btn"><i class="fas fa-trash"></i>Remove</button>
-            </form>
-            <form method="post" action="{% url 'orders:cart_update' item.key %}" class="cart-qty-group">
-              {% csrf_token %}
-              <button type="submit" name="action" value="decrease" class="cart-qty-btn" {% if item.quantity <= 1 %}disabled{% endif %} aria-label="Decrease quantity">−</button>
-              <span class="cart-qty-value">{{ item.quantity }}</span>
-              <button type="submit" name="action" value="increase" class="cart-qty-btn" {% if item.quantity >= item.product.stock %}disabled{% endif %} aria-label="Increase quantity">+</button>
-            </form>
-          </div>
-        </div>
-        {% endfor %}
-
-        <div class="p-3 border-top">
-          <a href="{% url 'store:shop' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Continue Shopping</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-4">
-      <div class="summary-sticky-wrap">
-        <form method="post" action="{% url 'orders:checkout_select' %}" id="checkoutSelectForm">
-          {% csrf_token %}
-          <div id="selectedItemsInputs"></div>
-          <div class="card summary-card p-4">
-            <h6 class="fw-bold mb-4">Order Summary</h6>
-
-            <div class="summary-row"><span class="text-muted">Subtotal</span><span class="fw-semibold" id="summarySubtotal">₱{{ cart_total|floatformat:0|intcomma }}</span></div>
-            <div class="summary-row">
-              <span class="text-muted">Shipping</span>
-              <span class="fw-semibold {% if shipping_fee == 0 %}text-success{% endif %}" id="summaryShipping">
-                {% if shipping_fee == 0 %}FREE{% else %}₱{{ shipping_fee|floatformat:0 }}.00{% endif %}
-              </span>
-            </div>
-
-            <div class="alert alert-info py-2 mb-2 free-shipping-alert {% if cart_total < 500 %}d-none{% endif %}" id="freeShippingAlert">
-              <i class="fas fa-info-circle me-1"></i><span id="freeShippingText">Orders of ₱500 or more have a ₱50 shipping fee.</span>
-            </div>
-
-            <hr>
-
-            <div class="d-flex justify-content-between align-items-center fw-bold mb-4">
-              <span>Grand Total</span>
-              <span class="summary-grand-total" id="summaryGrandTotal">₱{{ cart_total|add:shipping_fee|floatformat:0|intcomma }}</span>
-            </div>
-
-            <button type="submit" class="btn btn-gold btn-lg w-100 rounded-3" id="checkoutSubmitBtn">
-              <i class="fas fa-credit-card me-2"></i>Proceed to Checkout
+          <div class="d-flex align-items-center flex-wrap gap-2 cart-toolbar">
+            <button type="button" id="selectAllBtn" class="btn btn-select-all">
+              <i class="fas fa-check-square me-1"></i><span id="selectAllLabel">Deselect All</span>
             </button>
+            <span class="selected-count-text small ms-1"><span id="selectedCount">{{ cart_items|length }}</span> of {{ cart_items|length }} selected</span>
+          </div>
+          {% endif %}
 
-            <div class="d-flex align-items-center justify-content-center gap-2 mt-3 text-muted" style="font-size:11px;">
-              <i class="fas fa-lock"></i><span>Secure checkout</span>
+          {% for item in cart_items %}
+          <div class="d-flex align-items-start gap-3 cart-line {% if cart_items|length == 1 %}cart-line-single{% endif %}">
+            {% if cart_items|length > 1 %}
+            <input type="checkbox" class="form-check-input cart-item-checkbox cart-line-checkbox" data-item-key="{{ item.key }}" data-price="{{ item.total }}" checked>
+            {% else %}
+            <input type="checkbox" class="cart-item-checkbox d-none" data-item-key="{{ item.key }}" data-price="{{ item.total }}" checked>
+            {% endif %}
+
+            {% if item.product.image %}
+            <img src="{{ item.product.image.url }}" class="cart-line-img" alt="{{ item.product.name }}">
+            {% else %}
+            <div class="cart-line-img-placeholder">🎨</div>
+            {% endif %}
+
+            <div style="flex:1;min-width:0;">
+              <a href="{{ item.product.get_absolute_url }}" class="cart-item-name">{{ item.product.name }}</a>
+              <div class="cart-item-category">
+                {% if item.product.category.name %}<span>{{ item.product.category.name }}</span>{% endif %}
+                {% if item.size_display %}<span class="cart-item-variant-badge">{{ item.size_display }}</span>{% endif %}
+              </div>
+              <div class="cart-item-price">₱{{ item.price|floatformat:0|intcomma }}</div>
+              {% if item.quantity >= item.product.stock %}
+              <div class="stock-warning"><i class="fas fa-exclamation-circle"></i>Max available stock reached</div>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-column align-items-end gap-3 cart-line-actions">
+              <form method="post" action="{% url 'orders:cart_remove' item.key %}">
+                {% csrf_token %}
+                <button type="submit" class="remove-line-btn" aria-label="Remove {{ item.product.name }} from cart" title="Remove item">
+                  <i class="fas fa-trash"></i>Remove
+                </button>
+              </form>
+              <form method="post" action="{% url 'orders:cart_update' item.key %}" class="cart-qty-group">
+                {% csrf_token %}
+                <button type="submit" name="action" value="decrease" class="cart-qty-btn" {% if item.quantity <= 1 %}disabled{% endif %} aria-label="Decrease quantity">−</button>
+                <span class="cart-qty-value">{{ item.quantity }}</span>
+                <button type="submit" name="action" value="increase" class="cart-qty-btn" {% if item.quantity >= item.product.stock %}disabled{% endif %} aria-label="Increase quantity">+</button>
+              </form>
             </div>
           </div>
-        </form>
+          {% endfor %}
+
+          <div class="cart-continue-shopping-wrap">
+            <a href="{% url 'store:shop' %}" class="btn-continue-shopping"><i class="fas fa-arrow-left"></i>Continue Shopping</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-3">
+        <div class="summary-sticky-wrap">
+          <form method="post" action="{% url 'orders:checkout_select' %}" id="checkoutSelectForm">
+            {% csrf_token %}
+            <div id="selectedItemsInputs"></div>
+            <div class="card summary-card p-4">
+              <h6 class="fw-bold summary-title mb-4">Order Summary</h6>
+
+              <div class="summary-row">
+                <span class="label">Subtotal</span>
+                <span class="value" id="summarySubtotal">₱{{ cart_total|floatformat:0|intcomma }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Shipping</span>
+                <span class="value {% if shipping_fee == 0 %}shipping-free{% endif %}" id="summaryShipping">
+                  {% if shipping_fee == 0 %}FREE{% else %}₱{{ shipping_fee|floatformat:0 }}.00{% endif %}
+                </span>
+              </div>
+
+              <div class="alert free-shipping-alert py-2 mb-2 {% if cart_total < 500 %}d-none{% endif %}" id="freeShippingAlert">
+                <i class="fas fa-info-circle me-1"></i><span id="freeShippingText">Orders of ₱500 or more have a ₱50 shipping fee.</span>
+              </div>
+
+              <hr class="summary-divider">
+
+              <div class="summary-grand-total-row">
+                <span class="summary-grand-total-label">Grand Total</span>
+                <span class="summary-grand-total" id="summaryGrandTotal">₱{{ cart_total|add:shipping_fee|floatformat:0|intcomma }}</span>
+              </div>
+
+              <button type="submit" class="btn-checkout" id="checkoutSubmitBtn">
+                <i class="fas fa-credit-card"></i>Proceed to Checkout
+              </button>
+
+              <div class="d-flex align-items-center justify-content-center gap-2 mt-3 secure-checkout-note">
+                <i class="fas fa-lock"></i><span>Secure checkout</span>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
+    {% else %}
+    <div class="empty-cart-card text-center">
+      <div class="empty-cart-icon">🛒</div>
+      <h4 class="fw-bold text-muted mb-2">Your cart is empty</h4>
+      <p class="text-muted small mb-4">Discover handcrafted products from our PDL artisans.</p>
+      <a href="{% url 'store:shop' %}" class="btn btn-teal btn-lg px-5 rounded-3">Start Shopping</a>
+    </div>
+    {% endif %}
   </div>
-  {% else %}
-  <div class="text-center py-5">
-    <div class="empty-cart-icon">🛒</div>
-    <h4 class="fw-bold text-muted mb-2">Your cart is empty</h4>
-    <p class="text-muted small mb-4">Discover handcrafted products from our PDL artisans.</p>
-    <a href="{% url 'store:shop' %}" class="btn btn-teal btn-lg px-5 rounded-3">Start Shopping</a>
-  </div>
-  {% endif %}
 </div>
 
 {% if cart %}
@@ -200,10 +422,10 @@
     subtotalEl.textContent = peso(subtotal);
     if (shipping === 0) {
       shippingEl.textContent = 'FREE';
-      shippingEl.classList.add('text-success');
+      shippingEl.classList.add('shipping-free');
     } else {
       shippingEl.textContent = peso(shipping);
-      shippingEl.classList.remove('text-success');
+      shippingEl.classList.remove('shipping-free');
     }
     grandTotalEl.textContent = peso(grandTotal);
 

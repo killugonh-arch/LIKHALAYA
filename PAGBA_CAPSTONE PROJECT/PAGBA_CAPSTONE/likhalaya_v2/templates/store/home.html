@@ -126,8 +126,8 @@
 
 .home-product-media {
   position: relative; overflow: hidden;
-  background: #fbfaf5;              /* off-white behind the product photo */
-  padding: 14px;
+  background: #e6f0e9;              /* same soft green as card body */
+  padding: 8px;
 }
 .home-product-media img,
 .home-product-media .img-placeholder {
@@ -152,7 +152,7 @@
   z-index: 2;
 }
 
-.home-product-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; }
+.home-product-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; }
 
 .home-product-meta {
   display: flex; align-items: center; justify-content: space-between;
@@ -164,13 +164,14 @@
 
 .home-product-name {
   font-size: 14.5px; font-weight: 700; color: var(--charcoal);
-  line-height: 1.35; min-height: 2.6em; display: -webkit-box;
+  line-height: 1.35; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  margin-bottom: 0;
 }
 .home-product-name a { color: inherit; text-decoration: none; }
 
 .home-product-footer {
-  margin-top: auto; padding-top: 10px;
+  margin-top: 0; padding-top: 6px;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
 .home-product-price-wrap { display: flex; flex-direction: column; line-height: 1.15; }
@@ -181,9 +182,9 @@
 .home-product-price { font-family: 'Poppins', sans-serif; font-size: 19px; color: var(--gold); font-weight: 800; }
 
 .home-add-cart-btn {
-  width: 100%; margin-top: 10px;
+  width: 100%; margin-top: 6px;
   background: var(--teal); color: #fff; border: none;
-  font-size: 12.5px; font-weight: 600; padding: 9px 0;
+  font-size: 12.5px; font-weight: 600; padding: 7px 0;
   border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
   transition: background .2s, transform .2s;
 }
@@ -195,6 +196,35 @@
   border: 1.5px dashed #e0ece4; border-radius: 14px; background: #fbfaf7;
 }
 .products-empty i { font-size: 34px; color: #d8cfc0; margin-bottom: 12px; display: block; }
+
+/* ---------- Category pills (icon + label) ---------- */
+.home-categories-row {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin-bottom: 36px;
+}
+.home-category-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid #e6e0d2;
+  padding: 6px 14px 6px 8px; border-radius: 24px;
+  color: var(--charcoal, #1B4332); text-decoration: none;
+  font-size: 12px; font-weight: 600;
+  transition: all .2s ease;
+}
+.home-category-pill:hover {
+  background: var(--teal); border-color: var(--teal); color: #fff;
+  transform: translateY(-2px); box-shadow: 0 6px 16px rgba(27,67,50,.16);
+}
+.home-category-pill:hover .home-category-icon { background: #fff; color: var(--teal); }
+.home-category-icon {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+  background: #e6f0e9; color: var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; transition: all .2s ease;
+}
+.home-category-pill.active {
+  background: var(--teal); border-color: var(--teal); color: #fff;
+}
+.home-category-pill.active .home-category-icon { background: #fff; color: var(--teal); }
 
 /* ---------- Impact / feature cards (circle icon style, matches reference) ---------- */
 .impact-section { background: #F7F5EE; }
@@ -235,12 +265,22 @@
   background: linear-gradient(135deg, var(--teal), #1B4332);
   border-radius: 22px; padding: 52px; overflow: hidden; position: relative;
 }
-.mission-banner::after {
-  content: ''; position: absolute; right: 48px; top: 50%; transform: translateY(-50%);
-  width: 110px; height: 110px; background: rgba(255,255,255,.08); border-radius: 50%;
+.mission-banner-circle-img {
+  position: absolute; right: 48px; top: 50%; transform: translateY(-50%);
+  width: 220px; height: 220px; border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,.25);
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
 }
 .mission-banner h3 { font-family: 'Poppins', sans-serif; font-size: 26px; }
 .mission-banner p { color: rgba(255,255,255,.82); font-size: 15px; max-width: 540px; line-height: 1.7; margin-bottom: 26px; }
+
+/* ---------- Fix: remove white gap before footer ---------- */
+body { background-color: #F7F5EE; }
+.home-section:last-of-type {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
 
 /* ---------- Responsiveness ---------- */
 @media (max-width: 991.98px) {
@@ -334,10 +374,26 @@
       <p>Newest handcrafted pieces made by PDL artisans — each one a step toward a second chance.</p>
     </div>
 
+    {% if categories %}
+    <div class="home-categories-row" data-aos="fade-up">
+      <button type="button" class="home-category-pill active" data-filter="all">
+        <span class="home-category-icon"><i class="fas fa-border-all"></i></span> All
+      </button>
+      {% for category in categories %}
+      <button type="button" class="home-category-pill" data-filter="{{ category.slug }}">
+        <span class="home-category-icon">
+          <i class="{{ category.icon|default:'fas fa-tag' }}"></i>
+        </span>
+        {{ category.name }}
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     {% if latest_products %}
     <div class="row g-4">
       {% for product in latest_products|slice:":8" %}
-      <div class="col-sm-6 col-md-4 col-xl-3" data-aos="fade-up">
+      <div class="col-sm-6 col-md-4 col-xl-3 home-product-col" data-category="{{ product.category.slug|default:'uncategorized' }}" data-aos="fade-up">
         <div class="home-product-card">
           <div class="home-product-media">
             {% if product.on_sale %}
@@ -381,6 +437,11 @@
       <a href="{% url 'store:shop' %}" class="btn btn-teal px-4 rounded-pill">
         View All Products <i class="fas fa-arrow-right ms-1"></i>
       </a>
+    </div>
+    <div class="products-empty d-none" id="home-category-empty">
+      <i class="fas fa-box-open"></i>
+      <div class="fw-bold mb-1">No products in this category yet</div>
+      <p class="small mb-0">Try another category or view all products.</p>
     </div>
     {% else %}
     <div class="products-empty" data-aos="fade-up">
@@ -507,6 +568,7 @@
 <section class="home-section" style="background:#F7F5EE;">
   <div class="container">
     <div class="mission-banner" data-aos="fade-up">
+      <img src="{% static 'imgs/pic1.jpg' %}" alt="Likhalaya artisans" class="mission-banner-circle-img d-none d-md-block">
       <div class="row align-items-center">
         <div class="col-lg-8 text-white">
           <h3 class="fw-bold mb-2">Empowering Lives Behind Bars</h3>
@@ -565,6 +627,38 @@
   });
 
   startTimer();
+})();
+</script>
+<script>
+(function () {
+  const pills = document.querySelectorAll('.home-category-pill');
+  const cards = document.querySelectorAll('.home-product-col');
+  const emptyMsg = document.getElementById('home-category-empty');
+  if (!pills.length || !cards.length) return;
+
+  pills.forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      const filter = pill.dataset.filter;
+
+      pills.forEach(function (p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+
+      let visibleCount = 0;
+      cards.forEach(function (card) {
+        const matches = filter === 'all' || card.dataset.category === filter;
+        card.style.display = matches ? '' : 'none';
+        if (matches) visibleCount++;
+      });
+
+      if (emptyMsg) {
+        emptyMsg.classList.toggle('d-none', visibleCount !== 0);
+      }
+
+      if (window.AOS) {
+        AOS.refresh();
+      }
+    });
+  });
 })();
 </script>
 {% endblock %}
