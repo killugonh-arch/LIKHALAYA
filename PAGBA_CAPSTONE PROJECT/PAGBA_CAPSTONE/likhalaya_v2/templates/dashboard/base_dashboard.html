@@ -80,6 +80,39 @@ body { background: #f0ede8; }
 }
 .sidebar-link i { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
 
+/* Mobile-only Logout entry at the bottom of the off-canvas admin menu.
+   Kept out of the desktop sidebar (it stays permanently visible there,
+   so a second Logout would duplicate the one already in the topbar
+   account dropdown) — this copy only renders on phones/tablets. */
+.sidebar-logout-wrap { display: none; }
+.sidebar-logout-form { margin: 0; }
+.sidebar-link.sidebar-logout-link {
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #ff8a8a;
+  font: inherit;
+  text-align: left;
+}
+.sidebar-link.sidebar-logout-link:hover,
+.sidebar-link.sidebar-logout-link:focus-visible {
+  color: #fff;
+  background: rgba(231,76,60,.22);
+  border-left-color: #e74c3c;
+}
+.sidebar-link.sidebar-logout-link:active {
+  background: rgba(231,76,60,.32);
+}
+
+/* Hide the Logout row inside the topbar account dropdown on mobile —
+   its job is taken over by .sidebar-logout-wrap so the option isn't
+   duplicated at the same breakpoint. */
+@media (max-width: 768px) {
+  .sidebar-logout-wrap { display: block; }
+  .topbar-account-logout { display: none !important; }
+}
+
 .sidebar-badge {
   margin-left: auto;
   background: #e74c3c;
@@ -429,7 +462,7 @@ body.dark-mode .btn-icon-delete { background: #ff6b6b !important; }
       <div>
         <div class="sidebar-logo-text">LIKHALAYA</div>
         <div class="sidebar-logo-sub">
-          {% if user.is_admin_user %}Admin Panel{% elif user.role == 'staff' %}Staff Panel{% else %}Coordinator{% endif %}
+          {% if user.is_admin_user %}Admin Panel{% elif user.role == 'staff' %}Staff Panel{% elif user.is_courier_user %}Courier Panel{% else %}Coordinator{% endif %}
         </div>
       </div>
     </div>
@@ -451,6 +484,12 @@ body.dark-mode .btn-icon-delete { background: #ff6b6b !important; }
       </div>
     </div>
 
+    {% if user.is_courier_user %}
+    <div class="sidebar-section-label">Deliveries</div>
+    <a href="{% url 'dashboard:courier_order_list' %}" class="sidebar-link {% block sb_deliveries %}{% endblock %}">
+      <i class="fas fa-truck-fast"></i><span>My Deliveries</span>
+    </a>
+    {% else %}
     <div class="sidebar-section-label">Main</div>
     <a href="{% url 'dashboard:home' %}" class="sidebar-link {% block sb_dash %}{% endblock %}">
       <i class="fas fa-chart-pie"></i><span>Overview</span>
@@ -472,6 +511,11 @@ body.dark-mode .btn-icon-delete { background: #ff6b6b !important; }
       <i class="fas fa-shopping-bag"></i><span>Orders</span>
       {% if new_orders_count %}<span class="sidebar-badge">{{ new_orders_count }}</span>{% endif %}
     </a>
+    {% if user.is_admin_user %}
+    <a href="{% url 'dashboard:courier_order_list' %}" class="sidebar-link {% block sb_deliveries2 %}{% endblock %}">
+      <i class="fas fa-truck-fast"></i><span>Deliveries</span>
+    </a>
+    {% endif %}
     <a href="{% url 'dashboard:reports' %}" class="sidebar-link {% block sb_reports %}{% endblock %}">
       <i class="fas fa-chart-bar"></i><span>Reports</span>
     </a>
@@ -481,6 +525,17 @@ body.dark-mode .btn-icon-delete { background: #ff6b6b !important; }
       <i class="fas fa-envelope"></i><span>Messages</span>
       {% if new_messages_count %}<span class="sidebar-badge">{{ new_messages_count }}</span>{% endif %}
     </a>
+
+    <div class="sidebar-section-label">Payments</div>
+    {% if user.is_admin_user %}
+    <a href="{% url 'dashboard:gcash_qr_admin' %}" class="sidebar-link {% block sb_gcash_qr %}{% endblock %}">
+      <i class="fas fa-qrcode"></i><span>GCash QR Code</span>
+    </a>
+    {% else %}
+    <a href="{% url 'dashboard:gcash_qr_manage' %}" class="sidebar-link {% block sb_gcash_qr2 %}{% endblock %}">
+      <i class="fas fa-qrcode"></i><span>GCash QR Code</span>
+    </a>
+    {% endif %}
 
     {% if user.is_admin_user %}
     <div class="sidebar-section-label">Users &amp; Security</div>
@@ -498,11 +553,24 @@ body.dark-mode .btn-icon-delete { background: #ff6b6b !important; }
       <i class="fas fa-box-archive"></i><span>Archive</span>
     </a>
     {% endif %}
+    {% endif %}
 
     <hr style="border-color:rgba(255,255,255,.1);margin:12px 16px;">
     <a href="{% url 'store:home' %}" class="sidebar-link">
       <i class="fas fa-store"></i><span>View Store</span>
     </a>
+
+    <!-- Mobile-only: Logout at the bottom of the admin menu, so phone
+         users can sign out without switching to desktop view. Hidden
+         on desktop (≥769px) to avoid duplicating the topbar dropdown's
+         Logout item. -->
+    <div class="sidebar-logout-wrap">
+      <form method="post" action="{% url 'accounts:logout' %}" class="js-logout-form sidebar-logout-form">{% csrf_token %}
+        <button type="submit" class="sidebar-link sidebar-logout-link">
+          <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+        </button>
+      </form>
+    </div>
 
     <div class="sidebar-footer">
       <span>v2.0 · Likhalaya PDL Market</span>
@@ -585,8 +653,8 @@ body.dark-mode .btn-icon-delete { background: #ff6b6b !important; }
           <li><h6 class="dropdown-header">{{ user.get_full_name|default:user.username }}</h6></li>
           <li><a class="dropdown-item small" href="{% url 'accounts:profile' %}"><i class="fas fa-user me-2 text-muted"></i>My Profile</a></li>
           <li><a class="dropdown-item small" href="{% url 'accounts:change_password' %}"><i class="fas fa-lock me-2 text-muted"></i>Change Password</a></li>
-          <li><hr class="dropdown-divider my-1"></li>
-          <li>
+          <li class="topbar-account-logout"><hr class="dropdown-divider my-1"></li>
+          <li class="topbar-account-logout">
             <form method="post" action="{% url 'accounts:logout' %}" class="js-logout-form">{% csrf_token %}
               <button type="submit" class="dropdown-item small text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
             </form>

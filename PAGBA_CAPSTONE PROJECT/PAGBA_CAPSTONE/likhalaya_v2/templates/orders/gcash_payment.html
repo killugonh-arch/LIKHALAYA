@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static humanize %}
+{% load static humanize gcash_extras %}
 {% block title %}GCash Payment – Likhalaya{% endblock %}
 
 {% block extra_css %}
@@ -9,14 +9,9 @@
 .qr-box { background: #fff; border: 2px dashed #cfe6f8; border-radius: 16px; padding: 18px; text-align: center; }
 .qr-box img { width: auto; max-width: 100%; height: 300px; object-fit: contain; border-radius: 8px; }
 .amount-pill { background: #eaf6ff; color: #0071CE; font-weight: 800; font-size: 22px; border-radius: 12px; padding: 10px 18px; display: inline-block; }
-.upload-drop { border: 2px dashed #dfe3e8; border-radius: 14px; padding: 22px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
-.upload-drop:hover { border-color: var(--teal); background: rgba(30,95,90,.03); }
-.upload-drop.has-file { border-color: #27ae60; background: #eafaf1; }
 .proof-preview { max-width: 100%; max-height: 260px; border-radius: 12px; margin-top: 10px; }
-.step-badge { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-.step-badge.done { background: #27ae60; color: #fff; }
-.step-badge.active { background: var(--teal); color: #fff; }
-.step-badge.pending { background: #e6e2d8; color: #888; }
+.review-card { background:#fff; border:1px solid #eee; border-radius:16px; padding:18px 20px; }
+.review-card h6 { color:var(--teal); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
 </style>
 {% endblock %}
 
@@ -25,24 +20,19 @@
   <div class="row justify-content-center">
     <div class="col-lg-6">
 
+      {% if order.is_finalized %}
       <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-outline-secondary btn-sm rounded-3 mb-3">
         <i class="fas fa-arrow-left me-1"></i>Back to Order
       </a>
+      {% else %}
+      <a href="{% url 'orders:gcash_back_to_checkout' order.pk %}" class="btn btn-outline-secondary btn-sm rounded-3 mb-3">
+        <i class="fas fa-arrow-left me-1"></i>Back to Cart
+      </a>
+      {% endif %}
 
-      <!-- Step indicator -->
-      <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
-        <span class="step-badge done"><i class="fas fa-check"></i></span>
-        <span class="small fw-semibold text-muted">Order Info</span>
-        <div style="width:24px;height:2px;background:#ddd;"></div>
-        <span class="step-badge {% if order.payment_proof %}done{% else %}active{% endif %}">
-          {% if order.payment_proof %}<i class="fas fa-check"></i>{% else %}2{% endif %}
-        </span>
-        <span class="small fw-semibold text-muted">GCash Payment</span>
-        <div style="width:24px;height:2px;background:#ddd;"></div>
-        <span class="step-badge {% if order.payment_proof %}active{% else %}pending{% endif %}">3</span>
-        <span class="small fw-semibold text-muted">Confirm</span>
-      </div>
+      {% include 'orders/_checkout_stepper.html' with current_step=4 %}
 
+      {% if not order.payment_proof %}
       <div class="gcash-card shadow-sm overflow-hidden mb-4">
         <div class="gcash-header text-center">
           <div style="font-size:32px;">📱</div>
@@ -57,141 +47,116 @@
           </div>
 
           <div class="qr-box mb-3">
-            <img src="{% static 'imgs/gcash-qr.jpg' %}" alt="GCash QR Code">
-            <div class="small text-muted mt-2">Scan this QR in your GCash app</div>
-            <div class="fw-bold" style="color:#0071CE;">DE***L BR**N P.</div>
-            <div class="small text-muted">+63 975 154 ••••</div>
+            {% if active_qr %}
+              <img src="{{ active_qr.image.url }}" alt="GCash QR Code">
+              <div class="small text-muted mt-2">Scan this QR in your GCash app</div>
+              {% if active_qr.account_name %}<div class="fw-bold" style="color:#0071CE;">{{ active_qr.account_name|mask_gcash_name }}</div>{% endif %}
+              {% if active_qr.account_number %}<div class="small text-muted">{{ active_qr.account_number }}</div>{% endif %}
+            {% else %}
+              <i class="fas fa-qrcode" style="font-size:48px;color:#cfe6f8;"></i>
+              <div class="fw-bold mt-2" style="color:#8b9490;">No QR code available right now</div>
+              <div class="small text-muted mt-1">Please try again later or choose a different payment method.</div>
+            {% endif %}
           </div>
-
-          {% if not order.payment_proof %}
-          <!-- Step 2: upload verification screenshot -->
           <h6 class="fw-bold mb-2" style="color:var(--teal);">Send your payment verification</h6>
-          <p class="text-muted small mb-3">After paying, take a screenshot of your GCash payment receipt and upload it below.</p>
-
-          <form method="post" enctype="multipart/form-data" id="proofForm">
+          <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <label class="upload-drop d-block mb-2" id="dropLabel" for="proofInput">
-              <i class="fas fa-cloud-arrow-up fs-3 mb-2" style="color:var(--teal);"></i>
-              <div class="fw-semibold" id="dropText">Tap to upload GCash receipt screenshot</div>
-              <div class="small text-muted">PNG or JPG · {{ min_proof_kb }}KB–{{ max_proof_kb }}KB</div>
-              <input type="file" name="payment_proof" id="proofInput" accept="image/*" class="d-none" required>
-              <img id="proofPreview" class="proof-preview d-none">
-            </label>
-            <div class="small text-danger d-none mb-3" id="proofSizeError"></div>
-            <button type="submit" class="btn btn-teal btn-lg w-100 rounded-3" id="sendProofBtn">
-              <i class="fas fa-paper-plane me-2"></i>Send Verification
+            <input type="file" name="payment_proof" accept="image/*" class="form-control mb-2" required>
+            <div class="small text-muted mb-3">PNG or JPG · {{ min_proof_kb }}KB–{{ max_proof_kb }}KB</div>
+            <button type="submit" class="btn btn-teal btn-lg w-100 rounded-3">
+              <i class="fas fa-paper-plane me-2"></i>Submit Payment Proof
             </button>
           </form>
-
-          {% else %}
-          <!-- Step 3: verification received, ready to place order -->
-          <div class="text-center mb-3">
-            <div class="fw-bold text-success mb-2"><i class="fas fa-circle-check me-1"></i>Verification image received</div>
-            <img src="{{ order.payment_proof.url }}" class="proof-preview" alt="Payment proof">
-          </div>
-
-          <form method="post" action="{% url 'orders:gcash_payment' order.pk %}" enctype="multipart/form-data" class="mb-2">
-            {% csrf_token %}
-            <label class="small fw-semibold" style="color:var(--teal);cursor:pointer;">
-              <input type="file" name="payment_proof" id="replaceProofInput" accept="image/*" class="d-none">
-              <i class="fas fa-rotate me-1"></i>Replace screenshot
-            </label>
-            <div class="small text-muted mt-1">Must be {{ min_proof_kb }}KB–{{ max_proof_kb }}KB</div>
-          </form>
-
-          <form method="post" action="{% url 'orders:gcash_finalize' order.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-gold btn-lg w-100 rounded-3">
-              <i class="fas fa-check-circle me-2"></i>Place Order
-            </button>
-          </form>
-          {% endif %}
         </div>
       </div>
+      {% endif %}
+
+      {% if order.payment_proof %}
+      <div class="review-card mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="mb-0"><i class="fas fa-mobile-screen-button" style="color:var(--gold);"></i>Payment Verification</h6>
+          <a href="#change-proof" data-bs-toggle="collapse" class="small fw-semibold" style="color:var(--teal);text-decoration:underline;">
+            <i class="fas fa-rotate me-1"></i>Change Image
+          </a>
+        </div>
+        <div class="fw-bold text-success mb-2 small"><i class="fas fa-circle-check me-1"></i>Verification image received</div>
+        <img src="{{ order.payment_proof.url }}" class="proof-preview" alt="Payment proof">
+
+        <div class="collapse mt-3" id="change-proof">
+          <form method="post" enctype="multipart/form-data" class="border-top pt-3">
+            {% csrf_token %}
+            <input type="file" name="payment_proof" accept="image/*" class="form-control mb-2" required>
+            <div class="small text-muted mb-2">PNG or JPG · {{ min_proof_kb }}KB–{{ max_proof_kb }}KB</div>
+            <button type="submit" class="btn btn-sm btn-teal rounded-3">
+              <i class="fas fa-paper-plane me-1"></i>Upload New Image
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="review-card mb-3">
+        <h6><i class="fas fa-receipt" style="color:var(--gold);"></i>Order Details</h6>
+        {% for item in order.items.all %}
+        <div class="d-flex align-items-center gap-3 py-2 border-bottom">
+          <div style="width:56px;height:56px;border-radius:8px;overflow:hidden;background:#f5f5f5;flex-shrink:0;">
+            {% if item.design.image %}
+              <img src="{{ item.design.image.url }}" alt="{{ item.product_name }}" style="width:100%;height:100%;object-fit:cover;">
+            {% elif item.product.image %}
+              <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" style="width:100%;height:100%;object-fit:cover;">
+            {% else %}
+              <div class="d-flex align-items-center justify-content-center h-100"><i class="fas fa-image text-muted"></i></div>
+            {% endif %}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="fw-semibold small text-truncate">
+              {{ item.product_name }}
+              {% if item.size_display %}<span class="badge bg-light text-dark border ms-1" style="font-size:10px;">{{ item.size_display }}</span>{% endif %}
+              {% if item.design_name %}<span class="badge bg-light text-dark border ms-1" style="font-size:10px;">{{ item.design_name }}</span>{% endif %}
+            </div>
+            <div class="text-muted" style="font-size:11px;">x{{ item.quantity }} @ ₱{{ item.product_price|floatformat:0|intcomma }}</div>
+          </div>
+          <div class="fw-bold small" style="color:var(--gold);">₱{{ item.item_total|floatformat:0|intcomma }}</div>
+        </div>
+        {% endfor %}
+        <div class="d-flex justify-content-between fw-bold mt-3 pt-2 border-top">
+          <span>Total</span>
+          <span style="color:var(--gold);font-size:18px;">₱{{ order.total|floatformat:0|intcomma }}</span>
+        </div>
+      </div>
+
+      <!-- Delivery Address -->
+      <div class="review-card mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="mb-0"><i class="fas fa-map-marker-alt" style="color:var(--gold);"></i>Delivery Address</h6>
+        </div>
+        <div class="small mb-2">
+          <div class="text-muted mb-1">Name: <span class="fw-semibold text-dark">{{ order.full_name }}</span></div>
+          <div class="text-muted mb-1">Phone: <span class="fw-semibold text-dark">{{ order.phone }}</span></div>
+          <div class="text-muted">Address: <span class="fw-semibold text-dark">{{ order.address }}, {{ order.city }}, {{ order.province }} {{ order.zip_code }}</span></div>
+        </div>
+        <a href="{% url 'accounts:profile' %}?next={% url 'orders:gcash_payment' order.pk %}&edit=1" class="small fw-semibold" style="color:var(--teal);text-decoration:underline;">
+          <i class="fas fa-location-dot me-1"></i>Change Location
+        </a>
+      </div>
+
+      <!-- Final confirmation -->
+      <div class="review-card">
+        <h6><i class="fas fa-clipboard-check" style="color:var(--gold);"></i>Ready to Confirm</h6>
+        <div class="small mb-3">
+          <div class="mb-1"><i class="fas fa-check text-success me-2"></i>Delivery details verified</div>
+          <div class="mb-1"><i class="fas fa-check text-success me-2"></i>Order details reviewed</div>
+          <div><i class="fas fa-check text-success me-2"></i>Payment proof attached</div>
+        </div>
+        <form method="post" action="{% url 'orders:gcash_finalize' order.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-gold btn-lg w-100 rounded-3">
+            <i class="fas fa-check-circle me-2"></i>Confirm Order
+          </button>
+        </form>
+      </div>
+      {% endif %}
 
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-const MIN_PROOF_BYTES = {{ min_proof_kb|default:100 }} * 1024;
-const MAX_PROOF_BYTES = {{ max_proof_kb|default:500 }} * 1024;
-
-const proofInput = document.getElementById('proofInput');
-const proofForm = document.getElementById('proofForm');
-const sizeError = document.getElementById('proofSizeError');
-const sendBtn = document.getElementById('sendProofBtn');
-
-function formatKB(bytes) {
-  return Math.round(bytes / 1024) + ' KB';
-}
-
-function validateProofFile(file) {
-  if (!sizeError) return true;
-  if (!file) { sizeError.classList.add('d-none'); return true; }
-  if (file.size < MIN_PROOF_BYTES) {
-    sizeError.textContent = `This image is too small (${formatKB(file.size)}). It must be at least ${formatKB(MIN_PROOF_BYTES)} to be accepted as a valid GCash receipt.`;
-    sizeError.classList.remove('d-none');
-    return false;
-  }
-  if (file.size > MAX_PROOF_BYTES) {
-    sizeError.textContent = `This image is too large (${formatKB(file.size)}). It must be under ${formatKB(MAX_PROOF_BYTES)}.`;
-    sizeError.classList.remove('d-none');
-    return false;
-  }
-  sizeError.classList.add('d-none');
-  return true;
-}
-
-if (proofInput) {
-  proofInput.addEventListener('change', () => {
-    const file = proofInput.files[0];
-    const dropLabel = document.getElementById('dropLabel');
-    const dropText = document.getElementById('dropText');
-    const preview = document.getElementById('proofPreview');
-    const valid = validateProofFile(file);
-    if (file) {
-      dropLabel.classList.toggle('has-file', valid);
-      dropText.textContent = file.name;
-      const reader = new FileReader();
-      reader.onload = e => {
-        preview.src = e.target.result;
-        preview.classList.remove('d-none');
-      };
-      reader.readAsDataURL(file);
-    }
-    if (sendBtn) sendBtn.disabled = !valid;
-  });
-}
-
-if (proofForm) {
-  proofForm.addEventListener('submit', (e) => {
-    const file = proofInput.files[0];
-    if (!validateProofFile(file)) {
-      e.preventDefault();
-    }
-  });
-}
-
-const replaceProofInput = document.getElementById('replaceProofInput');
-if (replaceProofInput) {
-  replaceProofInput.addEventListener('change', () => {
-    const file = replaceProofInput.files[0];
-    if (!file) return;
-    if (file.size < MIN_PROOF_BYTES) {
-      alert(`This image is too small (${formatKB(file.size)}). It must be at least ${formatKB(MIN_PROOF_BYTES)}.`);
-      replaceProofInput.value = '';
-      return;
-    }
-    if (file.size > MAX_PROOF_BYTES) {
-      alert(`This image is too large (${formatKB(file.size)}). It must be under ${formatKB(MAX_PROOF_BYTES)}.`);
-      replaceProofInput.value = '';
-      return;
-    }
-    replaceProofInput.form.submit();
-  });
-}
-</script>
 {% endblock %}

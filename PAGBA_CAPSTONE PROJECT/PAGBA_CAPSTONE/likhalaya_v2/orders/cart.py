@@ -1,6 +1,12 @@
 from decimal import Decimal
 from django.conf import settings
-from store.models import Product
+from store.models import Product, ProductDesign
+
+# Session key holding the single ad-hoc "Buy Now" item, kept completely
+# separate from the persistent CART_SESSION_ID cart dict. A Buy Now
+# purchase must never be merged into (or removed from) the customer's
+# actual cart, so it lives in its own bit of session state.
+BUY_NOW_SESSION_ID = 'buy_now_item'
 
 
 def calculate_shipping_fee(subtotal):
@@ -16,6 +22,21 @@ def calculate_shipping_fee(subtotal):
         return Decimal('50')
 
 
+def _max_purchasable(product, design):
+    """The real stock cap for a cart line. A design's own `stock` is
+    authoritative when one applies. Otherwise: a product using the
+    Size → Design variant system tracks stock ONLY per design, so a size
+    with no active design has zero stock — it must never fall back to the
+    product's overall calculated total (that total belongs to whichever
+    designs actually have it). Only a plain, variant-less product falls
+    back to its own shared `stock` field."""
+    if design:
+        return max(0, design.stock_for_size(None))
+    if product.has_variants:
+        return 0
+    return max(0, product.stock)
+
+
 class Cart:
     def __init__(self, request):
         self.session = request.session
@@ -25,18 +46,23 @@ class Cart:
         self.cart = cart
 
     @staticmethod
-    def make_key(product_id, size=None):
+    def make_key(product_id, size=None, design_id=None):
         """
-        Cart line key. Same product in different sizes gets a different key
-        (e.g. '12' for no-size, '12_S' / '12_M' / '12_L' for sized items) so
-        ordering the same product in two sizes creates two separate lines.
+        Cart line key. Product + size + design all combine into one key, so
+        the same product in a different size or a different design creates
+        a separate cart line (e.g. '12' for no-size/no-design, '12_S' for
+        Small only, '12_D3' for a design only, '12_S-D3' for both).
         """
         size = (size or '').upper()
-        return f"{product_id}_{size}" if size else str(product_id)
+        suffix = size
+        if design_id:
+            suffix = f"{suffix}-D{design_id}" if suffix else f"D{design_id}"
+        return f"{product_id}_{suffix}" if suffix else str(product_id)
 
-    def add(self, product, quantity=1, override_quantity=False, size=None):
+    def add(self, product, quantity=1, override_quantity=False, size=None, design=None):
         size = (size or '').upper() or None
-        key = self.make_key(product.id, size)
+        design_id = design.id if design else None
+        key = self.make_key(product.id, size, design_id)
         if key not in self.cart:
             price = product.get_price_for_size(size) if size else product.price_min
             self.cart[key] = {
@@ -45,13 +71,18 @@ class Cart:
                 'price': str(price),
                 'name': product.name,
                 'size': size or '',
+                'design_id': design_id,
+                'design_name': design.name if design else '',
             }
         if override_quantity:
             new_quantity = quantity
         else:
             new_quantity = self.cart[key]['quantity'] + quantity
-        # Never let the cart hold more than what's currently in stock.
-        max_qty = max(0, product.stock)
+        # Stock is tracked per (design, size) pair when this product has
+        # designs; otherwise it falls back to the shared product stock,
+        # same as before. A variant product's size with no active design
+        # at all has zero stock — see _max_purchasable.
+        max_qty = _max_purchasable(product, design)
         self.cart[key]['quantity'] = min(new_quantity, max_qty)
         self.save()
 
@@ -68,18 +99,29 @@ class Cart:
     def get_quantity(self, key):
         return self.cart.get(str(key), {}).get('quantity', 0)
 
+    def _resolve(self, raw_item, products, designs):
+        """Shared resolution logic used by __iter__ and get_buy_now_item so
+        both paths build the item dict identically."""
+        item = dict(raw_item)
+        item['product'] = products.get(item.get('product_id'))
+        item['price'] = Decimal(item['price'])
+        item['total'] = item['price'] * item['quantity']
+        item['total_price'] = item['total']  # backward compat
+        item.setdefault('size', '')
+        item['size_display'] = dict(Product.SIZE_CHOICES).get(item['size'], '')
+        item.setdefault('design_id', None)
+        item.setdefault('design_name', '')
+        item['design'] = designs.get(item.get('design_id'))
+        return item
+
     def __iter__(self):
         product_ids = {item.get('product_id') for item in self.cart.values()}
+        design_ids = {item.get('design_id') for item in self.cart.values() if item.get('design_id')}
         products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
+        designs = {d.id: d for d in ProductDesign.objects.filter(id__in=design_ids)}
         for key, raw_item in self.cart.items():
-            item = dict(raw_item)
+            item = self._resolve(raw_item, products, designs)
             item['key'] = key
-            item['product'] = products.get(item.get('product_id'))
-            item['price'] = Decimal(item['price'])
-            item['total'] = item['price'] * item['quantity']
-            item['total_price'] = item['total']  # backward compat
-            item.setdefault('size', '')
-            item['size_display'] = dict(Product.SIZE_CHOICES).get(item['size'], '')
             yield item
 
     def __len__(self):
@@ -120,4 +162,50 @@ class Cart:
     def clear(self):
         if settings.CART_SESSION_ID in self.session:
             del self.session[settings.CART_SESSION_ID]
+            self.save()
+
+    # --- Buy Now (never touches the cart above) -------------------------
+
+    def set_buy_now(self, product, quantity=1, size=None, design=None):
+        """Stash a single ad-hoc item for the "Buy Now" flow. This is stored
+        outside of self.cart entirely, so it never merges with an existing
+        cart line, never shows up in the cart page/badge, and never affects
+        quantities already in the cart."""
+        size = (size or '').upper() or None
+        design_id = design.id if design else None
+        price = product.get_price_for_size(size) if size else product.price_min
+        max_qty = _max_purchasable(product, design)
+        item = {
+            'product_id': product.id,
+            'quantity': min(max(1, quantity), max_qty) if max_qty else 0,
+            'price': str(price),
+            'name': product.name,
+            'size': size or '',
+            'design_id': design_id,
+            'design_name': design.name if design else '',
+        }
+        self.session[BUY_NOW_SESSION_ID] = item
+        self.save()
+        return item
+
+    def get_buy_now_item(self):
+        """Return the pending Buy Now item (with product/design/total
+        resolved), or None if there isn't one / the product is no longer
+        available."""
+        raw = self.session.get(BUY_NOW_SESSION_ID)
+        if not raw:
+            return None
+        product = Product.objects.filter(id=raw.get('product_id'), is_active=True).first()
+        if not product or raw.get('quantity', 0) <= 0:
+            return None
+        design = None
+        if raw.get('design_id'):
+            design = ProductDesign.objects.filter(id=raw['design_id']).first()
+        item = self._resolve(raw, {product.id: product}, {design.id: design} if design else {})
+        item['key'] = self.make_key(item['product_id'], item.get('size'), item.get('design_id'))
+        return item
+
+    def clear_buy_now(self):
+        if BUY_NOW_SESSION_ID in self.session:
+            del self.session[BUY_NOW_SESSION_ID]
             self.save()

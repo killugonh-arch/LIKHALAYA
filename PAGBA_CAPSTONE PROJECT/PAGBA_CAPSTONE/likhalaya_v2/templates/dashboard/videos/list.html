@@ -11,7 +11,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h4 class="fw-bold mb-0" style="color:var(--teal);">BJMP Livelihood Program Videos</h4>
-    <div class="text-muted" style="font-size:12px;">Shown on the About page, in the order below.</div>
+    <div class="text-muted" style="font-size:12px;">All active videos show on the About page. Mark up to 2 as "Show on Home" to feature them on the Home page too.</div>
   </div>
   {% if request.user.is_admin_user %}
   <a href="{% url 'dashboard:video_create' %}" class="btn btn-gold btn-sm px-3"><i class="fas fa-plus me-1"></i>Add Video</a>
@@ -20,7 +20,7 @@
 <div class="card border-0 shadow-sm">
   <div class="table-responsive">
     <table class="table dash-table mb-0">
-      <thead><tr><th>Order</th><th>Title</th><th>Source</th><th>Status</th>{% if request.user.is_admin_user %}<th>Actions</th>{% endif %}</tr></thead>
+      <thead><tr><th>Order</th><th>Title</th><th>Source</th><th>Status</th><th>Home</th>{% if request.user.is_admin_user %}<th>Actions</th>{% endif %}</tr></thead>
       <tbody>
         {% for video in videos %}
         <tr>
@@ -38,6 +38,10 @@
             {% if video.is_active %}<span class="badge bg-success" style="font-size:10px;">Active</span>
             {% else %}<span class="badge bg-secondary" style="font-size:10px;">Inactive</span>{% endif %}
           </td>
+          <td>
+            {% if video.show_on_home %}<span class="badge bg-warning text-dark" style="font-size:10px;"><i class="fas fa-star me-1"></i>On Home</span>
+            {% else %}<span class="text-muted" style="font-size:11px;">About only</span>{% endif %}
+          </td>
           {% if request.user.is_admin_user %}
           <td>
             <div class="action-btns">
@@ -48,7 +52,7 @@
           {% endif %}
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center py-5 text-muted">No videos added yet.</td></tr>
+        <tr><td colspan="6" class="text-center py-5 text-muted">No videos added yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

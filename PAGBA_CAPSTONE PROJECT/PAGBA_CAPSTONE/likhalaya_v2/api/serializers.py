@@ -45,12 +45,19 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'password', 'first_name', 'last_name', 'phone']
+        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name', 'phone']
+
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.get('password2'):
+            raise serializers.ValidationError({'password2': ["Passwords don't match."]})
+        return attrs
 
     def create(self, validated_data):
+        validated_data.pop('password2')
         password = validated_data.pop('password')
         user = CustomUser(**validated_data, role='customer')
         user.set_password(password)
@@ -86,9 +93,22 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'category', 'category_name', 'name', 'slug', 'description',
             'price_min', 'price_medium', 'price_max', 'price_display',
             'has_size_pricing', 'stock', 'in_stock', 'image', 'extra_images',
-            'is_active', 'artisan_name', 'created_at', 'updated_at',
+            'gcash_qr_code', 'is_active', 'artisan_name', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
+
+    def __init__(self, *args, **kwargs):
+        # On update (an instance already exists), only an Admin may submit a
+        # value for gcash_qr_code. Making the field read-only for everyone
+        # else means DRF drops it from validated_data entirely, so a Staff
+        # user's request cannot alter it no matter what the request body
+        # contains — this mirrors the dashboard ProductForm's enforcement.
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        is_admin = bool(request and request.user and request.user.is_authenticated
+                         and request.user.is_admin_user())
+        if self.instance is not None and not is_admin:
+            self.fields['gcash_qr_code'].read_only = True
 
 
 # ── Orders ────────────────────────────────────────────────────────

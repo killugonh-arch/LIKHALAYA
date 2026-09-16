@@ -15,8 +15,31 @@ class RegisterForm(UserCreationForm):
         model = CustomUser
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The template only collects name/email/password — there's no
+        # username field on the page. Auto-derive it from the email instead
+        # of requiring input the user never sees (that mismatch was making
+        # every signup fail Django's built-in "this field is required"
+        # check for username, silently, since the template never rendered
+        # that error either).
+        self.fields['username'].required = False
+        self.fields['username'].widget = forms.HiddenInput()
+        for name, field in self.fields.items():
+            if name == 'agree_terms':
+                field.widget.attrs.update({'class': 'form-check-input'})
+            elif name != 'username':
+                field.widget.attrs.update({'class': 'form-control'})
+        # By default Django clears password fields whenever the form is
+        # re-rendered after a validation error (e.g. unchecked Terms of
+        # Service). Keep the typed values so the user doesn't have to
+        # re-type their password every time.
+        self.fields['password1'].widget.render_value = True
+        self.fields['password2'].widget.render_value = True
+
     def clean_username(self):
-        username = self.cleaned_data.get('username')
+        email = self.data.get('email', '').strip()
+        username = self.cleaned_data.get('username') or email
         # If a previous signup attempt used this username but never verified
         # its email (is_active=False), it was abandoned — clear it out so
         # the person isn't permanently blocked from using their own username.
@@ -34,20 +57,6 @@ class RegisterForm(UserCreationForm):
             raise forms.ValidationError('An account with that email already exists.')
         return email
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for name, field in self.fields.items():
-            if name == 'agree_terms':
-                field.widget.attrs.update({'class': 'form-check-input'})
-            else:
-                field.widget.attrs.update({'class': 'form-control'})
-        # By default Django clears password fields whenever the form is
-        # re-rendered after a validation error (e.g. unchecked Terms of
-        # Service). Keep the typed values so the user doesn't have to
-        # re-type their password every time.
-        self.fields['password1'].widget.render_value = True
-        self.fields['password2'].widget.render_value = True
-
 class OTPVerifyForm(forms.Form):
     code = forms.CharField(
         max_length=6, min_length=6,
@@ -62,14 +71,19 @@ class OTPVerifyForm(forms.Form):
 
 
 class LoginForm(AuthenticationForm):
-    username = forms.CharField(
-        label='Username or Email',
-        widget=forms.TextInput(attrs={'autofocus': True}),
+    # The field is still named "username" because that's what Django's auth
+    # system (and AuthenticationForm) expects internally — but since every
+    # account's username is auto-set to its email on signup, we only ever
+    # want to show/label this as "Email" so it's not confused with the
+    # person's first/last name.
+    username = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={'autofocus': True, 'autocomplete': 'email'}),
     )
 
     error_messages = {
         **AuthenticationForm.error_messages,
-        'invalid_login': 'Please enter a correct username/email and password. Note that both fields may be case-sensitive.',
+        'invalid_login': 'Please enter a correct email and password. Note that both fields may be case-sensitive.',
     }
 
     def __init__(self, *args, **kwargs):

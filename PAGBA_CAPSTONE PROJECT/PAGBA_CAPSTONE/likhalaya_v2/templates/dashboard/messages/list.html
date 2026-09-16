@@ -46,6 +46,7 @@
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
           <div>
             <span class="fw-bold" style="font-size:13px;">{{ msg.name }}</span>
+            <span class="badge bg-light text-dark border ms-2" style="font-size:10px;">{{ msg.get_inquiry_type_display }}</span>
             {% if not msg.is_read %}<span class="badge bg-warning text-dark ms-2" style="font-size:10px;">NEW</span>{% endif %}
             <div class="text-muted" style="font-size:11px;">{{ msg.email }}</div>
           </div>

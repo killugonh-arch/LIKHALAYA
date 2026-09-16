@@ -47,6 +47,7 @@
             <div class="fw-semibold small">
               {{ item.product_name }}
               {% if item.size_display %}<span class="badge bg-light text-dark border ms-1" style="font-size:10px;">{{ item.size_display }}</span>{% endif %}
+              {% if item.design_name %}<span class="badge bg-light text-dark border ms-1" style="font-size:10px;">{{ item.design_name }}</span>{% endif %}
             </div>
             <div class="text-muted" style="font-size:11px;">x{{ item.quantity }} @ ₱{{ item.product_price|floatformat:0|intcomma }}</div>
           </div>

@@ -21,7 +21,7 @@
 .home-section-tight { padding: 56px 0; }
 .home-eyebrow {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  font-size: 15px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
   color: var(--teal); margin-bottom: 8px;
 }
 .home-section-head { text-align: center; margin-bottom: 40px; }
@@ -128,6 +128,7 @@
   position: relative; overflow: hidden;
   background: #e6f0e9;              /* same soft green as card body */
   padding: 8px;
+  display: block;
 }
 .home-product-media img,
 .home-product-media .img-placeholder {
@@ -196,6 +197,17 @@
   border: 1.5px dashed #e0ece4; border-radius: 14px; background: #fbfaf7;
 }
 .products-empty i { font-size: 34px; color: #d8cfc0; margin-bottom: 12px; display: block; }
+
+/* Shrink card internals to match the smaller 2-up column on phones */
+@media (max-width: 575.98px) {
+  .home-product-body { padding: 9px 10px 10px; gap: 4px; }
+  .home-product-name { font-size: 12.5px; }
+  .home-product-price { font-size: 15px; }
+  .home-product-price-label { font-size: 8.5px; }
+  .home-product-meta { font-size: 10.5px; }
+  .home-add-cart-btn { font-size: 11px; padding: 6px 0; }
+  .home-sale-badge { font-size: 9px; padding: 3px 9px; }
+}
 
 /* ---------- Category pills (icon + label) ---------- */
 .home-categories-row {
@@ -300,6 +312,12 @@ body { background-color: #F7F5EE; }
   .section-title { font-size: 22px; }
   .home-product-name { min-height: unset; }
   .impact-card { flex-direction: column; text-align: center; align-items: center; }
+
+  /* Center the hero content on phones */
+  .hero-section .col-lg-6 { text-align: center; }
+  .hero-cta-row { justify-content: center; }
+  .hero-trust-row { justify-items: center; }
+  .hero-trust-item { justify-content: center; }
 }
 </style>
 {% endblock %}
@@ -327,7 +345,7 @@ body { background-color: #F7F5EE; }
             <i class="fas fa-play-circle me-2"></i>Our Story
           </a>
         </div>
-        <div class="hero-trust-row">
+        <div class="hero-trust-row d-none d-md-flex">
           <div class="hero-trust-item"><i class="fas fa-seedling"></i>Supports PDL Rehabilitation</div>
           <div class="hero-trust-item"><i class="fas fa-shield-heart"></i>Authentic, Handmade Goods</div>
           <div class="hero-trust-item"><i class="fas fa-truck-fast"></i>Ships Nationwide</div>
@@ -341,10 +359,10 @@ body { background-color: #F7F5EE; }
 
           <div class="hero-slideshow">
             <img src="{% static 'imgs/t2.png' %}" alt="Handcrafted products" class="hero-slide active">
-            <img src="{% static 'imgs/pic1.jpg' %}" alt="Handcrafted products" class="hero-slide">
-            <img src="{% static 'imgs/pic2.jpg' %}" alt="Handcrafted products" class="hero-slide">
-            <img src="{% static 'imgs/pic3.jpg' %}" alt="Handcrafted products" class="hero-slide">
-            <img src="{% static 'imgs/pic4.jpg' %}" alt="Handcrafted products" class="hero-slide">
+            <img src="{% static 'imgs/ads.jpg' %}" alt="Handcrafted products" class="hero-slide">
+            <img src="{% static 'imgs/ads (1).jpg' %}" alt="Handcrafted products" class="hero-slide">
+            <img src="{% static 'imgs/ads (2).jpg' %}" alt="Handcrafted products" class="hero-slide">
+            <img src="{% static 'imgs/pic05.jpg' %}" alt="Handcrafted products" class="hero-slide">
           </div>
 
           <button type="button" class="hero-slide-btn hero-slide-next" aria-label="Next slide">
@@ -393,9 +411,9 @@ body { background-color: #F7F5EE; }
     {% if latest_products %}
     <div class="row g-4">
       {% for product in latest_products|slice:":8" %}
-      <div class="col-sm-6 col-md-4 col-xl-3 home-product-col" data-category="{{ product.category.slug|default:'uncategorized' }}" data-aos="fade-up">
+      <div class="col-6 col-md-4 col-xl-3 home-product-col" data-category="{{ product.category.slug|default:'uncategorized' }}" data-aos="fade-up">
         <div class="home-product-card">
-          <div class="home-product-media">
+          <a href="{{ product.get_absolute_url }}" class="home-product-media">
             {% if product.on_sale %}
             <span class="home-sale-badge">Sale</span>
             {% endif %}
@@ -404,8 +422,12 @@ body { background-color: #F7F5EE; }
             {% else %}
             <div class="img-placeholder"><i class="fas fa-image text-muted"></i></div>
             {% endif %}
-          </div>
+          </a>
           <div class="home-product-body">
+            {% if product.image %}
+            <script type="application/json" id="imgs-{{ product.pk }}">{{ product.images_by_size_json|safe }}</script>
+            <script type="application/json" id="variants-{{ product.pk }}">{{ product.variant_json|safe }}</script>
+            {% endif %}
             <div class="product-tag">{{ product.category.name|default:"Craft" }}</div>
             <h6 class="home-product-name">
               <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
@@ -417,13 +439,21 @@ body { background-color: #F7F5EE; }
               </div>
             </div>
             {% if product.in_stock %}
-            <form method="post" action="{% url 'orders:cart_add' product.pk %}">
-              {% csrf_token %}
-              <input type="hidden" name="quantity" value="1">
-              <button type="submit" class="home-add-cart-btn">
-                <i class="fas fa-cart-plus"></i> Add to Cart
-              </button>
-            </form>
+            <button type="button" class="home-add-cart-btn js-open-size-modal" title="Add to cart"
+              data-url="{% url 'orders:cart_add' product.pk %}"
+              data-name="{{ product.name }}"
+              data-mode="cart"
+              data-has-size-pricing="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
+              data-stock="{{ product.stock }}"
+              data-price-s="{{ product.price_small }}"
+              data-price-m="{{ product.price_medium }}"
+              data-price-l="{{ product.price_large }}"
+              data-preselect-size="M"
+              data-images-id="imgs-{{ product.pk }}"
+              data-has-variants="{% if product.has_variants %}1{% else %}0{% endif %}"
+              data-variants-id="variants-{{ product.pk }}">
+              <i class="fas fa-cart-plus"></i> Add to Cart
+            </button>
             {% else %}
             <button class="home-add-cart-btn" disabled>Sold Out</button>
             {% endif %}
@@ -433,15 +463,15 @@ body { background-color: #F7F5EE; }
       {% endfor %}
     </div>
 
-    <div class="text-center mt-5" data-aos="fade-up">
-      <a href="{% url 'store:shop' %}" class="btn btn-teal px-4 rounded-pill">
-        View All Products <i class="fas fa-arrow-right ms-1"></i>
-      </a>
-    </div>
     <div class="products-empty d-none" id="home-category-empty">
       <i class="fas fa-box-open"></i>
       <div class="fw-bold mb-1">No products in this category yet</div>
       <p class="small mb-0">Try another category or view all products.</p>
+    </div>
+    <div class="text-center mt-5" data-aos="fade-up">
+      <a href="{% url 'store:shop' %}" class="btn btn-teal px-4 rounded-pill">
+        View All Products <i class="fas fa-arrow-right ms-1"></i>
+      </a>
     </div>
     {% else %}
     <div class="products-empty" data-aos="fade-up">
@@ -518,9 +548,9 @@ body { background-color: #F7F5EE; }
         <div class="promo-card">
           <span class="promo-label">Featured Program</span>
           {% if featured_video.video_url %}
-          <iframe src="{{ featured_video.embed_url }}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:10px;margin-bottom:14px;display:block;" allowfullscreen loading="lazy"></iframe>
+          <iframe src="{{ featured_video.embed_url }}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:10px;margin-bottom:14px;display:block;" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
           {% elif featured_video.video_file %}
-          <video controls {% if featured_video.thumbnail %}poster="{{ featured_video.thumbnail.url }}"{% endif %}>
+          <video autoplay muted loop playsinline {% if featured_video.thumbnail %}poster="{{ featured_video.thumbnail.url }}"{% endif %}>
             <source src="{{ featured_video.video_file.url }}" type="video/mp4">
             Your browser does not support the video tag.
           </video>
@@ -538,9 +568,9 @@ body { background-color: #F7F5EE; }
         <div class="promo-card">
           <span class="promo-label">Featured Program</span>
           {% if second_video.video_url %}
-          <iframe src="{{ second_video.embed_url }}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:10px;margin-bottom:14px;display:block;" allowfullscreen loading="lazy"></iframe>
+          <iframe src="{{ second_video.embed_url }}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:10px;margin-bottom:14px;display:block;" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
           {% elif second_video.video_file %}
-          <video controls {% if second_video.thumbnail %}poster="{{ second_video.thumbnail.url }}"{% endif %}>
+          <video autoplay muted loop playsinline {% if second_video.thumbnail %}poster="{{ second_video.thumbnail.url }}"{% endif %}>
             <source src="{{ second_video.video_file.url }}" type="video/mp4">
             Your browser does not support the video tag.
           </video>
@@ -587,6 +617,7 @@ body { background-color: #F7F5EE; }
 {% endblock %}
 
 {% block extra_js %}
+{% include 'partials/size_picker_modal.html' %}
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script>AOS.init({ once: true, duration: 700, easing: 'ease-out-cubic' });</script>
 <script>

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static humanize %}
+{% load static humanize gcash_extras %}
 {% block title %}GCash Payment – Likhalaya{% endblock %}
 
 {% block extra_css %}
@@ -25,21 +25,11 @@
   <div class="row justify-content-center">
     <div class="col-lg-6">
 
-      <a href="{% url 'orders:checkout' %}" class="btn btn-outline-secondary btn-sm rounded-3 mb-3">
-        <i class="fas fa-arrow-left me-1"></i>Back to Order
+      <a href="{% url 'orders:checkout_review' %}" class="btn btn-outline-secondary btn-sm rounded-3 mb-3">
+        <i class="fas fa-arrow-left me-1"></i>Back to Review Details
       </a>
 
-      <!-- Step indicator -->
-      <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
-        <span class="step-badge done"><i class="fas fa-check"></i></span>
-        <span class="small fw-semibold text-muted">Order Info</span>
-        <div style="width:24px;height:2px;background:#ddd;"></div>
-        <span class="step-badge active">2</span>
-        <span class="small fw-semibold text-muted">GCash Payment</span>
-        <div style="width:24px;height:2px;background:#ddd;"></div>
-        <span class="step-badge pending">3</span>
-        <span class="small fw-semibold text-muted">Confirm</span>
-      </div>
+      {% include 'orders/_checkout_stepper.html' with current_step=3 %}
 
       <div class="gcash-card shadow-sm overflow-hidden mb-4">
         <div class="gcash-header text-center">
@@ -55,10 +45,16 @@
           </div>
 
           <div class="qr-box mb-3">
-            <img src="{% static 'imgs/gcash-qr.jpg' %}" alt="GCash QR Code">
-            <div class="small text-muted mt-2">Scan this QR in your GCash app</div>
-            <div class="fw-bold" style="color:#0071CE;">DE***L BR**N P.</div>
-            <div class="small text-muted">+63 975 154 ••••</div>
+            {% if active_qr %}
+              <img src="{{ active_qr.image.url }}" alt="GCash QR Code">
+              <div class="small text-muted mt-2">Scan this QR in your GCash app</div>
+              {% if active_qr.account_name %}<div class="fw-bold" style="color:#0071CE;">{{ active_qr.account_name|mask_gcash_name }}</div>{% endif %}
+              {% if active_qr.account_number %}<div class="small text-muted">{{ active_qr.account_number }}</div>{% endif %}
+            {% else %}
+              <i class="fas fa-qrcode" style="font-size:48px;color:#cfe6f8;"></i>
+              <div class="fw-bold mt-2" style="color:#8b9490;">No QR code available right now</div>
+              <div class="small text-muted mt-1">Please try again later or choose a different payment method.</div>
+            {% endif %}
           </div>
 
           <h6 class="fw-bold mb-2" style="color:var(--teal);">Send your payment verification</h6>
@@ -73,9 +69,10 @@
               <input type="file" name="payment_proof" id="proofInput" accept="image/*" class="d-none" required>
               <img id="proofPreview" class="proof-preview d-none">
             </label>
+            <button type="button" class="btn btn-sm btn-outline-danger d-none mb-2" id="clearProofBtn"><i class="fas fa-xmark me-1"></i>Remove image</button>
             <div class="small text-danger d-none mb-3" id="proofSizeError"></div>
             <button type="submit" class="btn btn-teal btn-lg w-100 rounded-3" id="sendProofBtn">
-              <i class="fas fa-paper-plane me-2"></i>Send Verification
+              <i class="fas fa-paper-plane me-2"></i>Submit Payment Proof
             </button>
           </form>
         </div>
@@ -123,6 +120,7 @@ if (proofInput) {
     const dropLabel = document.getElementById('dropLabel');
     const dropText = document.getElementById('dropText');
     const preview = document.getElementById('proofPreview');
+    const clearBtn = document.getElementById('clearProofBtn');
     const valid = validateProofFile(file);
     if (file) {
       dropLabel.classList.toggle('has-file', valid);
@@ -133,8 +131,26 @@ if (proofInput) {
         preview.classList.remove('d-none');
       };
       reader.readAsDataURL(file);
+      if (clearBtn) clearBtn.classList.remove('d-none');
     }
     if (sendBtn) sendBtn.disabled = !valid;
+  });
+}
+
+const clearProofBtn = document.getElementById('clearProofBtn');
+if (clearProofBtn) {
+  clearProofBtn.addEventListener('click', () => {
+    proofInput.value = '';
+    const dropLabel = document.getElementById('dropLabel');
+    const dropText = document.getElementById('dropText');
+    const preview = document.getElementById('proofPreview');
+    dropLabel.classList.remove('has-file');
+    dropText.textContent = 'Tap to upload GCash receipt screenshot';
+    preview.classList.add('d-none');
+    preview.src = '';
+    clearProofBtn.classList.add('d-none');
+    if (sizeError) sizeError.classList.add('d-none');
+    if (sendBtn) sendBtn.disabled = false;
   });
 }
 

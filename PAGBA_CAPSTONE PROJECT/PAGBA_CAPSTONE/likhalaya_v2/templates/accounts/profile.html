@@ -7,162 +7,108 @@
 /* ============ Page background ============ */
 body { background: #F6F8FA; }
 
-/* ============ Hero ============ */
-.profile-hero {
-  position: relative;
-  overflow: hidden;
-  padding: 56px 0 96px;
-  background: linear-gradient(135deg, #0F3D39 0%, var(--teal) 55%, #2D7A73 100%);
-}
-.profile-hero::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(circle at 12% 20%, rgba(255,255,255,.10), transparent 45%),
-              radial-gradient(circle at 88% 15%, rgba(232,168,42,.16), transparent 42%),
-              radial-gradient(circle at 75% 90%, rgba(255,255,255,.06), transparent 40%);
-}
-.profile-hero::after {
-  content: '';
-  position: absolute;
-  width: 360px; height: 360px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 50%;
-  top: -160px; right: -80px;
-}
-.profile-hero-inner { position: relative; z-index: 2; }
+/* ============ Content container — same width/rhythm as Shop's content area ============ */
+.profile-page-shell { max-width: 1300px; margin: 0 auto; padding: 40px 24px 64px; }
+.profile-page-grid { display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: start; }
 
-/* Subtle decorative language shared with the Contact-page hero */
-.profile-hero-decor { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
-.profile-hero-decor .ring { position: absolute; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.10); }
-.profile-hero-decor .ring.r1 { width: 160px; height: 160px; bottom: -70px; left: 6%; border-color: rgba(232,168,42,.16); }
-.profile-hero-decor .dot-grid { position: absolute; top: 22px; right: 6%; display: grid; grid-template-columns: repeat(4, 6px); gap: 9px; }
-.profile-hero-decor .dot-grid span { width: 5px; height: 5px; border-radius: 50%; background: rgba(232,168,42,.30); }
-.profile-hero-decor .curve-line { position: absolute; width: 300px; height: 300px; border: 1px dashed rgba(255,255,255,.08); border-radius: 50%; top: 30%; right: 18%; transform: translate(30%, -30%); }
-@media (max-width: 767px) {
-  .profile-hero-decor .ring, .profile-hero-decor .curve-line { opacity: .5; }
-  .profile-hero-decor .dot-grid { top: 16px; right: 5%; }
+/* ============ Shared card style — matches Shop's filter panel / product cards:
+   white bg, thin clean border, subtle shadow, moderate radius, no heavy effects ============ */
+.pcard {
+  background: #fff;
+  border: 1px solid #ECECEC;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(16,24,20,.05);
 }
 
-/* Subtle curved transition into the light page background */
-.profile-hero-wave { position: absolute; left: 0; right: 0; bottom: -1px; line-height: 0; z-index: 1; }
-.profile-hero-wave svg { display: block; width: 100%; height: 28px; }
+/* ============ Account nav card ============ */
+.pnav-card { padding: 20px; }
+.pnav-card-title {
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+  color: #8b9490; margin-bottom: 14px; padding: 0 6px;
+}
+.pnav { display: flex; flex-direction: column; gap: 4px; }
+.pnav-link {
+  display: flex; align-items: center; gap: 10px;
+  color: #435047; font-size: 14.5px; font-weight: 600;
+  border-radius: 10px; padding: 11px 14px;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+}
+.pnav-link i { width: 16px; text-align: center; font-size: 13px; color: #8b9490; transition: color .15s ease; }
+.pnav-link:hover { background: #F2F6F4; color: var(--teal); }
+.pnav-link:hover i { color: var(--teal); }
+.pnav-link.active {
+  background: var(--teal);
+  color: #fff;
+}
+.pnav-link.active i { color: #fff; }
 
+/* ============ Profile summary card (compact — no oversized hero) ============ */
+.psummary-card { padding: 32px; display: flex; align-items: center; gap: 24px; margin-bottom: 24px; }
 .profile-avatar {
-  width: 144px; height: 144px;
+  width: 100px; height: 100px;
   border-radius: 50%;
-  border: 5px solid #fff;
-  box-shadow: 0 14px 36px rgba(0,0,0,.30);
+  border: 4px solid #fff;
+  outline: 1px solid #ECECEC;
+  box-shadow: 0 4px 14px rgba(16,24,20,.12);
   object-fit: cover;
   background: var(--gold);
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 50px; font-weight: 700;
+  color: #fff; font-size: 34px; font-weight: 700;
   flex-shrink: 0;
 }
-.profile-name {
-  font-family: 'Playfair Display', serif;
-  font-weight: 800;
-  font-size: clamp(28px, 4.2vw, 42px);
-  line-height: 1.15;
-  color: #fff;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  margin-bottom: 10px;
+.psummary-info { min-width: 0; }
+.psummary-name {
+  font-size: 24px; font-weight: 800; color: #1a2420;
+  margin: 0 0 6px; overflow-wrap: break-word;
 }
-.profile-email {
-  color: rgba(255,255,255,.85);
-  font-size: 16px;
-  margin-bottom: 14px;
-  display: flex; align-items: center; gap: 8px;
+.psummary-email {
+  font-size: 15px; color: #6b756f; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px; overflow-wrap: break-word;
 }
-.profile-email i { color: rgba(232,168,42,.9); font-size: 14px; }
+.psummary-email i { color: var(--gold); font-size: 13px; }
+.psummary-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .profile-role-badge {
   background: var(--gold);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
-  padding: 7px 16px;
+  padding: 6px 16px;
   border-radius: 20px;
   letter-spacing: .3px;
   display: inline-flex;
   align-items: center;
 }
-.profile-joined { color: rgba(255,255,255,.8); font-size: 14px; }
-
-/* ============ Dashboard grid ============ */
-.profile-shell { max-width: 1400px; margin: -68px auto 0; padding: 0 24px 64px; position: relative; z-index: 3; }
-.profile-grid { display: grid; grid-template-columns: 328px 1fr; gap: 32px; align-items: start; }
-
-/* ============ Cards ============ */
-.pcard {
-  background: #fff;
-  border-radius: 20px;
-  border: none;
-  box-shadow: 0 4px 24px rgba(16,24,20,.07);
-  transition: box-shadow .22s ease, transform .22s ease;
-  animation: pcard-fade-up .45s ease both;
-}
-.pcard:hover { box-shadow: 0 10px 34px rgba(16,24,20,.10); }
-@keyframes pcard-fade-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ============ Sidebar nav ============ */
-.pnav-card { padding: 18px; }
-.pnav { display: flex; flex-direction: column; gap: 4px; }
-.pnav-link {
-  display: flex; align-items: center; gap: 12px;
-  color: #4b5563; font-size: 14px; font-weight: 600;
-  border-radius: 12px; padding: 12px 14px;
-  text-decoration: none;
-  position: relative;
-  transition: background .18s ease, color .18s ease, transform .18s ease;
-}
-.pnav-link i { width: 18px; text-align: center; color: #8b9490; transition: color .18s ease; }
-.pnav-link:hover { background: #f2f6f4; transform: translateX(2px); }
-.pnav-link:hover i { color: var(--teal); }
-.pnav-link.active {
-  background: var(--teal);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(15,107,79,.28);
-}
-.pnav-link.active i { color: #fff; }
-.pnav-link.active::before {
-  content: '';
-  position: absolute; left: -16px; top: 50%; transform: translateY(-50%);
-  width: 4px; height: 22px; border-radius: 4px;
-  background: var(--gold);
-}
-.pnav-divider { border: none; border-top: 1px solid #eceeec; margin: 8px 6px; }
+.psummary-joined { color: #8b9490; font-size: 13.5px; }
 
 /* ============ Profile info card ============ */
 .pinfo-card-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 28px 40px 0;
+  padding: 22px 28px 0;
   flex-wrap: wrap; gap: 12px;
 }
-.pinfo-card-title { font-size: 24px; font-weight: 800; color: #1a2420; margin: 0; }
-.pinfo-card-body { padding: 20px 40px 28px; }
+.pinfo-card-title { font-size: 19px; font-weight: 800; color: #1a2420; margin: 0; }
+.pinfo-card-body { padding: 18px 28px 24px; }
 
 .pfield-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
-.pfield { padding: 16px 0; border-bottom: 1px solid #f0f1ef; }
+.pfield { padding: 14px 0; border-bottom: 1px solid #f0f1ef; }
 .pfield.pfield-full { grid-column: 1 / -1; }
 .pfield:nth-last-child(-n+2) { border-bottom: none; }
-.pfield-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #8b9490; margin-bottom: 6px; }
-.pfield-value { font-size: 16.5px; font-weight: 600; color: #1a2420; }
-.pfield-value .text-danger { font-size: 14px; font-weight: 600; }
+.pfield-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #8b9490; margin-bottom: 5px; }
+.pfield-value { font-size: 15px; font-weight: 600; color: #1a2420; }
+.pfield-value .text-danger { font-size: 13px; font-weight: 600; }
 
-/* ============ Buttons ============ */
+/* ============ Buttons — teal primary, gold used only as accent ============ */
 .btn-teal-premium {
-  background: linear-gradient(135deg, var(--teal), #2D7A73);
+  background: var(--teal);
   color: #fff; border: none;
-  border-radius: 12px;
-  padding: 10px 22px;
-  font-weight: 700; font-size: 13.5px;
-  box-shadow: 0 6px 16px rgba(15,107,79,.25);
-  transition: transform .18s ease, box-shadow .18s ease;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-weight: 700; font-size: 13px;
+  box-shadow: 0 3px 10px rgba(15,107,79,.20);
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
-.btn-teal-premium:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,107,79,.32); color: #fff; }
+.btn-teal-premium:hover { background: #1a6f5f; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,107,79,.26); color: #fff; }
 .btn-teal-premium:active { transform: translateY(0); }
 
 /* ============ Form (edit mode) ============ */
@@ -195,83 +141,67 @@ body { background: #F6F8FA; }
 .loc-suggest-empty { padding: 8px 14px; font-size: 13px; color: #999; }
 
 /* ============ Responsive ============ */
-@media (max-width: 1200px) {
-  .profile-grid { grid-template-columns: 280px 1fr; gap: 24px; }
-}
-@media (max-width: 900px) {
-  .profile-grid { grid-template-columns: 1fr; }
-  .pnav { flex-direction: row; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .pnav-link { flex-shrink: 0; }
-  .pnav-link.active::before { display: none; }
-  .pnav-divider { display: none; }
+@media (max-width: 992px) {
+  .profile-page-grid { grid-template-columns: 240px 1fr; gap: 20px; }
 }
 @media (max-width: 767px) {
-  .profile-hero { padding: 40px 0 84px; text-align: center; }
-  .profile-hero-inner .d-flex { flex-direction: column; align-items: center !important; text-align: center; padding-left: 0 !important; gap: 20px !important; }
-  .pinfo-card-header { padding: 24px 24px 0; }
-  .pinfo-card-body { padding: 20px 24px 24px; }
+  .profile-page-shell { padding: 28px 16px 48px; }
+  .profile-page-grid { grid-template-columns: 1fr; }
+  .pnav { flex-direction: row; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+  .pnav::-webkit-scrollbar { display: none; }
+  .pnav-link { flex-shrink: 0; }
+  .pnav-card-title { display: none; }
+  .psummary-card { flex-direction: column; text-align: center; }
+  .psummary-meta { justify-content: center; }
+  .pinfo-card-header { padding: 20px 20px 0; }
+  .pinfo-card-body { padding: 16px 20px 20px; }
   .pfield-grid { grid-template-columns: 1fr; }
   .pfield:nth-last-child(-n+2) { border-bottom: 1px solid #f0f1ef; }
   .pfield:last-child { border-bottom: none; }
-  .profile-shell { padding: 0 16px 48px; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="profile-hero">
-  <div class="profile-hero-decor">
-    <span class="ring r1"></span>
-    <span class="dot-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
-    <span class="curve-line"></span>
-  </div>
+{% include 'partials/compact_page_header.html' with eyebrow='My Account' eyebrow_icon='fa-user' title='Profile' subtitle='Manage your account information and preferences.' %}
 
-  <div class="container profile-hero-inner">
-    <div class="d-flex align-items-start justify-content-start" style="gap: 32px; padding-left: 8px;">
-      {% if user.avatar %}
-      <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="profile-avatar">
-      {% else %}
-      <div class="profile-avatar d-flex align-items-center justify-content-center">
-        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
-      </div>
-      {% endif %}
-      <div style="min-width:0;">
-        <h3 class="fw-bold profile-name">{{ user.get_full_name|default:user.username }}</h3>
-        <div class="profile-email"><i class="fas fa-envelope"></i>{{ user.email }}</div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <span class="profile-role-badge">{{ user.get_role_display }}</span>
-          <span class="profile-joined">Joined {{ user.date_joined|date:"F Y" }}</span>
-        </div>
+<div class="profile-page-shell">
+  <div class="profile-page-grid">
+
+    <!-- ============ Left: Account Navigation ============ -->
+    <div>
+      <div class="pcard pnav-card">
+        <div class="pnav-card-title">Account</div>
+        <nav class="pnav">
+          <a class="pnav-link active" href="javascript:void(0)" onclick="showEditProfile()"><i class="fas fa-user-edit"></i>Edit Profile</a>
+          <a class="pnav-link" href="{% url 'orders:my_orders' %}"><i class="fas fa-shopping-bag"></i>My Orders</a>
+          <a class="pnav-link" href="{% url 'accounts:change_password' %}"><i class="fas fa-lock"></i>Change Password</a>
+        </nav>
       </div>
     </div>
-  </div>
 
-  <div class="profile-hero-wave">
-    <svg viewBox="0 0 1440 28" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,18 C240,28 480,4 720,10 C960,16 1200,26 1440,14 L1440,28 L0,28 Z" fill="#F6F8FA"></path>
-    </svg>
-  </div>
-</div>
-
-<div class="profile-shell">
-  <div class="profile-grid">
-
-    <!-- ============ Sidebar Nav ============ -->
-    <div class="pcard pnav-card">
-      <nav class="pnav">
-        <a class="pnav-link active" href="javascript:void(0)" onclick="showEditProfile()"><i class="fas fa-user-edit"></i>Edit Profile</a>
-        <a class="pnav-link" href="{% url 'orders:my_orders' %}"><i class="fas fa-shopping-bag"></i>My Orders</a>
-        <a class="pnav-link" href="{% url 'accounts:change_password' %}"><i class="fas fa-lock"></i>Change Password</a>
-        {% if user.is_staff_user %}
-        <hr class="pnav-divider">
-        <a class="pnav-link" href="{% url 'dashboard:home' %}"><i class="fas fa-chart-pie"></i>Dashboard</a>
-        {% endif %}
-      </nav>
-    </div>
-
-    <!-- ============ Profile Content ============ -->
+    <!-- ============ Right: Profile Content ============ -->
     <div class="tab-content">
       <div class="tab-pane fade show active" id="edit">
+
+        <!-- Compact profile summary — no oversized hero, just avatar + name/email/badge -->
+        <div class="pcard psummary-card">
+          {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="profile-avatar">
+          {% else %}
+          <div class="profile-avatar d-flex align-items-center justify-content-center">
+            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+          </div>
+          {% endif %}
+          <div class="psummary-info">
+            <h3 class="psummary-name">{{ user.get_full_name|default:user.username }}</h3>
+            <div class="psummary-email"><i class="fas fa-envelope"></i>{{ user.email }}</div>
+            <div class="psummary-meta">
+              <span class="profile-role-badge">{{ user.get_role_display }}</span>
+              <span class="psummary-joined">Joined {{ user.date_joined|date:"F Y" }}</span>
+            </div>
+          </div>
+        </div>
 
         {% if needs_contact_info %}
         <div class="alert alert-warning d-flex align-items-start gap-2 mb-4 rounded-4" role="alert">

@@ -19,23 +19,13 @@
   position: relative;
 }
 #detailImageWrap .mic-frame img {
+  width: 100%;
+  max-width: 100%;
   height: 380px;
+  display: block;
+  object-fit: cover;
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(0,0,0,.08);
-}
-#detailImageWrap .mic-nav {
-  width: 44px;
-  height: 44px;
-  font-size: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.12);
-  opacity: 0;
-  transition: opacity .2s ease;
-  pointer-events: none;
-}
-#detailImageWrap .mic-frame:hover .mic-nav,
-#detailImageWrap .mic-nav:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
 }
 .mic-dots { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
 .mic-dot { width: 9px; height: 9px; border-radius: 50%; border: none; background: #ddd6c9; padding: 0; cursor: pointer; transition: all .2s; }
@@ -51,6 +41,23 @@
 .artisan-card { background: linear-gradient(135deg, #0f3d39, #1E5F5A); border-radius: 14px; padding: 24px; color: #fff; }
 .related-card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); transition: all .2s; overflow: hidden; }
 .related-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+
+/* ===== Progressive scaling down to phone ===== */
+@media (max-width: 991.98px) {
+  #detailImageWrap .mic-frame { min-height: 300px; }
+  #detailImageWrap .mic-frame img { width: 100%; height: 300px; }
+}
+@media (max-width: 767.98px) {
+  .container.pt-4, .container.py-5 { padding-left: 16px; padding-right: 16px; }
+  #detailImageWrap .mic-frame { min-height: 240px; }
+  #detailImageWrap .mic-frame img { width: 100%; height: 240px; border-radius: 12px; }
+  h2.fw-bold { font-size: clamp(20px, 5vw, 26px) !important; }
+  .mb-4 > div[style*="font-size:32px"] { font-size: clamp(22px, 6vw, 28px) !important; }
+  .d-flex.align-items-center.gap-3.flex-wrap { flex-direction: column; align-items: stretch !important; gap: 10px !important; }
+  .d-flex.align-items-center.gap-3.flex-wrap .btn { width: 100%; }
+  .d-flex.gap-4.flex-wrap { gap: 10px !important; }
+  .d-flex.gap-4.flex-wrap .text-muted.small { font-size: 11px; }
+}
 </style>
 {% endblock %}
 
@@ -80,15 +87,10 @@
     <div class="col-lg-5">
       {% if product.image or product.extra_images.all %}
       <script type="application/json" id="imgs-detail">{{ product.images_by_size_json|safe }}</script>
+      <script type="application/json" id="variants-detail">{{ product.variant_json|safe }}</script>
       <div id="detailImageWrap">
         <div class="mic-frame">
           <img id="detailImgMain" src="{{ product.image.url|default:'' }}" alt="{{ product.name }}">
-          <button type="button" class="mic-nav mic-prev" id="detailImgPrev" aria-label="Previous image">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button type="button" class="mic-nav mic-next" id="detailImgNext" aria-label="Next image">
-            <i class="fas fa-chevron-right"></i>
-          </button>
         </div>
         <div class="mic-dots" id="detailImgDots"></div>
       </div>
@@ -108,9 +110,9 @@
       <!-- Price -->
       <div class="mb-4">
         <div style="font-size:32px;font-weight:800;color:var(--gold);">
-          {% if product.has_size_pricing %}₱{{ product.price_small|floatformat:0 }} – ₱{{ product.price_large|floatformat:0 }}{% else %}{{ product.price_display }}{% endif %}
+          {% if product.has_size_pricing %}₱{{ product.price_small|floatformat:0 }}{% else %}{{ product.price_display }}{% endif %}
         </div>
-        {% if product.has_size_pricing %}<div class="text-muted small">Price varies by size — pick a size when you add to cart</div>{% endif %}
+        {% if product.has_size_pricing %}<div class="text-muted small">Starts at this price — pick a size when you add to cart</div>{% endif %}
       </div>
 
       <!-- Stock -->
@@ -136,13 +138,15 @@
             data-url="{% url 'orders:cart_add' product.pk %}"
             data-name="{{ product.name }}"
             data-mode="cart"
-            data-has-sizes="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
+            data-has-size-pricing="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
             data-stock="{{ product.stock }}"
             data-price-s="{{ product.price_small }}"
             data-price-m="{{ product.price_medium }}"
             data-price-l="{{ product.price_large }}"
             data-preselect-size="{{ selected_size_default|default:'M' }}"
             data-images-id="imgs-detail"
+            data-has-variants="{% if product.has_variants %}1{% else %}0{% endif %}"
+            data-variants-id="variants-detail"
             id="detailAddToCartBtn">
             <i class="fas fa-shopping-cart me-2"></i>Add to Cart
           </button>
@@ -151,13 +155,15 @@
             data-url="{% url 'orders:cart_add' product.pk %}"
             data-name="{{ product.name }}"
             data-mode="buy_now"
-            data-has-sizes="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
+            data-has-size-pricing="{% if product.has_size_pricing %}1{% else %}0{% endif %}"
             data-stock="{{ product.stock }}"
             data-price-s="{{ product.price_small }}"
             data-price-m="{{ product.price_medium }}"
             data-price-l="{{ product.price_large }}"
             data-preselect-size="{{ selected_size_default|default:'M' }}"
             data-images-id="imgs-detail"
+            data-has-variants="{% if product.has_variants %}1{% else %}0{% endif %}"
+            data-variants-id="variants-detail"
             id="detailBuyNowBtn">
             <i class="fas fa-bolt me-2"></i>Buy Now
           </button>
@@ -171,6 +177,12 @@
       {% else %}
       <button class="btn btn-secondary btn-lg px-5 rounded-3 mb-4" disabled>Out of Stock</button>
       {% endif %}
+
+      <div class="mb-4">
+        <a href="{% url 'store:contact' %}?product={{ product.pk }}" class="btn btn-outline-secondary btn-sm rounded-3">
+          <i class="fas fa-circle-question me-1"></i>Ask About This Product
+        </a>
+      </div>
 
       <!-- Trust badges -->
       <div class="d-flex gap-4 flex-wrap">
@@ -211,15 +223,13 @@
 {% block extra_js %}
 {% include 'partials/size_picker_modal.html' %}
 <script>
-// Product image carousel: image + left/right arrows + dots.
+// Product image carousel: image + dots, auto-advancing (no manual arrows).
 // Shows every gallery photo (general + Small + Medium + Large) in one carousel,
 // deduplicated so a photo reused across sizes only appears once.
 (function() {
   var wrap = document.getElementById('detailImageWrap');
   if (!wrap) return;
   var mainImg = document.getElementById('detailImgMain');
-  var prevBtn = document.getElementById('detailImgPrev');
-  var nextBtn = document.getElementById('detailImgNext');
   var dotsWrap = document.getElementById('detailImgDots');
   var dataEl = document.getElementById('imgs-detail');
   var bySize = { general: [], S: [], M: [], L: [] };
@@ -258,9 +268,6 @@
   function render() {
     if (!images.length) return;
     mainImg.src = images[index];
-    var multi = images.length > 1;
-    prevBtn.style.display = multi ? '' : 'none';
-    nextBtn.style.display = multi ? '' : 'none';
     renderDots();
   }
 
@@ -269,15 +276,12 @@
     render();
   }
 
-  prevBtn.addEventListener('click', function() { goTo(index - 1); stopAutoplay(); startAutoplay(); });
-  nextBtn.addEventListener('click', function() { goTo(index + 1); stopAutoplay(); startAutoplay(); });
-
-  // Auto-swap image every 2 seconds; pauses while the user hovers the image.
+  // Auto-swap image every 4 seconds; pauses while the user hovers the image.
   var autoplayTimer = null;
   function startAutoplay() {
     if (images.length <= 1) return;
     stopAutoplay();
-    autoplayTimer = setInterval(function() { goTo(index + 1); }, 2000);
+    autoplayTimer = setInterval(function() { goTo(index + 1); }, 4000);
   }
   function stopAutoplay() {
     if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }

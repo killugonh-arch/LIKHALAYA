@@ -9,6 +9,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from .forms import RegisterForm, LoginForm, ProfileUpdateForm, OTPVerifyForm
 from .models import CustomUser, EmailOTP
@@ -67,6 +68,13 @@ def verify_email_view(request):
     next_url = request.session.get('pending_verification_next', '')
 
     if request.method == 'POST':
+        if 'cancel' in request.POST:
+            del request.session['pending_verification_user_id']
+            request.session.pop('pending_verification_next', None)
+            user.delete()
+            messages.info(request, 'Signup cancelled. You can register again with different details.')
+            return redirect('accounts:register')
+
         if 'resend' in request.POST:
             otp = EmailOTP.generate_for_user(user)
             try:
@@ -91,7 +99,7 @@ def verify_email_view(request):
                 otp.save(update_fields=['is_used'])
                 user.is_active = True
                 user.save(update_fields=['is_active'])
-                login(request, user)
+                login(request, user, backend='accounts.backends.UsernameOrEmailBackend')
                 del request.session['pending_verification_user_id']
                 request.session.pop('pending_verification_next', None)
                 messages.success(request, f'Welcome to Likhalaya, {user.first_name or user.username}! Your email is verified.')
@@ -117,6 +125,8 @@ def login_view(request):
                 return redirect(next_url)
             if user.is_staff_user():
                 return redirect('dashboard:home')
+            if user.is_courier_user():
+                return redirect('dashboard:courier_order_list')
             return redirect('store:home')
     else:
         form = LoginForm()
@@ -132,6 +142,10 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     next_url = request.POST.get('next') or request.GET.get('next', '')
+    if next_url and not url_has_allowed_host_and_scheme(
+        url=next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = ''
     if request.method == 'POST':
         form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():

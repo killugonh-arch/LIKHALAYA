@@ -29,13 +29,35 @@ class PersonnelAdmin(admin.ModelAdmin):
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
-    list_display = ['name', 'email', 'subject', 'created_at', 'is_read']
-    list_filter = ['is_read', 'created_at']
-    search_fields = ['name', 'email', 'subject', 'message']
+    list_display = ['name', 'inquiry_type', 'email', 'subject', 'status', 'created_at', 'is_read']
+    list_filter = ['inquiry_type', 'status', 'is_read', 'created_at']
+    search_fields = ['name', 'email', 'subject', 'message', 'item_name', 'organization_name', 'order_number_ref']
     list_editable = ['is_read']
+    readonly_fields = ['created_at']
+    fieldsets = (
+        ('Contact Details', {'fields': ('inquiry_type', 'status', 'name', 'email', 'phone', 'subject', 'message',
+                                         'customer', 'is_read', 'created_at')}),
+        ('Product / Order Reference', {
+            'fields': ('product', 'order', 'order_number_ref'),
+        }),
+        ('Product / Order Details', {
+            'classes': ('collapse',),
+            'fields': ('item_name', 'quantity', 'customization_request', 'preferred_materials',
+                       'target_budget', 'preferred_date', 'reference_image'),
+        }),
+        ('Organization / Partnership Details', {
+            'classes': ('collapse',),
+            'fields': ('organization_name', 'partnership_type', 'partnership_details', 'materials_condition'),
+        }),
+        ('Feedback / Concern Details', {
+            'classes': ('collapse',),
+            'fields': ('feedback_type', 'related_product', 'concern_type'),
+        }),
+        ('Additional Notes', {'fields': ('additional_details', 'staff_notes')}),
+    )
 
 
 @admin.register(LivelihoodVideo)
 class LivelihoodVideoAdmin(admin.ModelAdmin):
-    list_display = ['title', 'order', 'is_active', 'created_at']
-    list_editable = ['order', 'is_active']
+    list_display = ['title', 'order', 'is_active', 'show_on_home', 'created_at']
+    list_editable = ['order', 'is_active', 'show_on_home']

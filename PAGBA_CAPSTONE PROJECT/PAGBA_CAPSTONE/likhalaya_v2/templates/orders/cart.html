@@ -248,18 +248,42 @@
   .summary-sticky-wrap { position: static; }
 }
 
+@media (max-width: 767.98px) {
+  .cart-page-wrap { padding-top: 24px !important; padding-bottom: 24px !important; }
+  .cart-page-header { margin-bottom: 18px; padding-bottom: 12px; }
+  .cart-page-header h3 { font-size: 20px; }
+  .cart-toolbar { padding: 12px 14px; }
+  .cart-toolbar .btn-select-all { font-size: 11.5px; padding: 6px 12px; }
+  .cart-toolbar .selected-count-text { font-size: 12px; }
+  .cart-line { padding: 14px !important; gap: 10px !important; }
+  .cart-line-img, .cart-line-img-placeholder { width: 84px; height: 78px; }
+  .cart-item-name { font-size: 14.5px; }
+  .cart-item-category { font-size: 11px; }
+  .cart-item-price { font-size: 15px; margin-top: 6px; }
+  .cart-line-actions { min-width: 0; gap: 8px !important; }
+  .remove-line-btn { font-size: 11px; padding: 5px 10px; }
+  .cart-qty-btn { width: 28px; height: 28px; }
+  .cart-qty-value { width: 34px; height: 28px; line-height: 28px; font-size: 12.5px; }
+  .cart-continue-shopping-wrap { padding: 14px; }
+  .btn-continue-shopping { font-size: 12.5px; padding: 8px 16px; }
+  .summary-title { font-size: 15px; }
+  .summary-row { font-size: 13px; }
+  .summary-grand-total { font-size: 20px; }
+  .btn-checkout { font-size: 14px; padding: 12px 0; }
+}
+
 @media (max-width: 575.98px) {
   .cart-page-container { padding-left: 4px; padding-right: 4px; }
-  .cart-line { flex-wrap: wrap; padding: 16px !important; }
-  .cart-line-img, .cart-line-img-placeholder { width: 76px; height: 70px; }
-  .cart-item-name { font-size: 15px !important; }
+  .cart-line { flex-wrap: wrap; padding: 14px !important; }
+  .cart-line-img, .cart-line-img-placeholder { width: 72px; height: 66px; }
+  .cart-item-name { font-size: 14px !important; }
   .cart-line-actions {
     width: 100%; justify-content: space-between !important;
     align-items: center !important; flex-direction: row !important;
-    margin-top: 10px; min-width: 0;
+    margin-top: 8px; min-width: 0;
   }
-  .cart-qty-value { font-size: 13px; }
-  .btn-checkout { font-size: 14px; padding: 13px 0; }
+  .cart-qty-value { font-size: 12.5px; }
+  .btn-checkout { font-size: 13.5px; padding: 12px 0; }
 }
 </style>
 {% endblock %}
@@ -293,7 +317,9 @@
             <input type="checkbox" class="cart-item-checkbox d-none" data-item-key="{{ item.key }}" data-price="{{ item.total }}" checked>
             {% endif %}
 
-            {% if item.product.image %}
+            {% if item.design.image %}
+            <img src="{{ item.design.image.url }}" class="cart-line-img" alt="{{ item.design.title }}">
+            {% elif item.product.image %}
             <img src="{{ item.product.image.url }}" class="cart-line-img" alt="{{ item.product.name }}">
             {% else %}
             <div class="cart-line-img-placeholder">🎨</div>
@@ -304,9 +330,12 @@
               <div class="cart-item-category">
                 {% if item.product.category.name %}<span>{{ item.product.category.name }}</span>{% endif %}
                 {% if item.size_display %}<span class="cart-item-variant-badge">{{ item.size_display }}</span>{% endif %}
+                {% if item.design_name %}<span class="cart-item-variant-badge">{{ item.design_name }}</span>{% endif %}
               </div>
               <div class="cart-item-price">₱{{ item.price|floatformat:0|intcomma }}</div>
-              {% if item.quantity >= item.product.stock %}
+              {% if item.design %}{% if item.quantity >= item.design.stock %}
+              <div class="stock-warning"><i class="fas fa-exclamation-circle"></i>Max available stock reached</div>
+              {% endif %}{% elif item.quantity >= item.product.stock %}
               <div class="stock-warning"><i class="fas fa-exclamation-circle"></i>Max available stock reached</div>
               {% endif %}
             </div>

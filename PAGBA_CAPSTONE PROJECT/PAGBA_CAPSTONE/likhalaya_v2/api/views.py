@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from accounts.models import CustomUser, EmailOTP
+from accounts.views import _send_otp_email
 from store.models import Category, Product
 from orders.models import Order, OrderItem, Notification
 
@@ -35,8 +36,14 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         otp = EmailOTP.generate_for_user(user)
-        # Reuse whatever email-sending helper accounts/views.py already has
-        # for OTP delivery; wire that call in here if it exists as a function.
+        try:
+            _send_otp_email(user, otp)
+        except Exception:
+            user.delete()
+            return Response(
+                {'detail': "We couldn't send the verification email. Please try again or contact support."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response(
             {'detail': 'Registered. Check your email for the verification code.',
              'user_id': user.id},
@@ -89,6 +96,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
+    lookup_field = 'slug'
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -171,6 +179,47 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        """POST /api/orders/{id}/cancel/ — the order's own customer may
+        cancel it while it's still in an early status; mirrors
+        orders.views.cancel_order on the web side."""
+        order = self.get_object()
+        if order.user_id != request.user.pk and not request.user.is_staff_user():
+            return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
+        if order.status in ['shipped', 'delivered', 'cancelled']:
+            return Response({'detail': 'This order can no longer be cancelled.'}, status=400)
+        order.previous_status = order.status
+        order.status = 'cancelled'
+        order.save(update_fields=['status', 'previous_status', 'updated_at'])
+        order.restock_items()
+        return Response(OrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'])
+    def upload_payment_proof(self, request, pk=None):
+        """POST multipart /api/orders/{id}/upload_payment_proof/ with a
+        `payment_proof` file — mirrors orders.views.gcash_payment's upload
+        step. Only the order's own customer may attach a receipt."""
+        order = self.get_object()
+        if order.user_id != request.user.pk:
+            return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
+        proof = request.FILES.get('payment_proof')
+        MIN_PROOF_SIZE = 100 * 1024
+        MAX_PROOF_SIZE = 500 * 1024
+        if not proof:
+            return Response({'detail': 'Please attach a screenshot of your GCash payment.'}, status=400)
+        if proof.size < MIN_PROOF_SIZE:
+            return Response(
+                {'detail': 'That image is too small to be a real GCash receipt screenshot (must be at least 100 KB).'},
+                status=400)
+        if proof.size > MAX_PROOF_SIZE:
+            return Response(
+                {'detail': 'That image is too large (must be under 500 KB).'}, status=400)
+        order.payment_proof = proof
+        order.payment_submitted_at = timezone.now()
+        order.save(update_fields=['payment_proof', 'payment_submitted_at'])
+        return Response(OrderSerializer(order).data)
 
     @action(detail=True, methods=['patch'], permission_classes=[IsStaffRole])
     def set_status(self, request, pk=None):

@@ -1,15 +1,18 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.core.paginator import Paginator
 from django.contrib import messages
-from .models import Product, Category, Personnel, ContactMessage, LivelihoodVideo
+from django.http import JsonResponse
+from .models import Product, Category, Personnel, ContactMessage, LivelihoodVideo, ProductDesign
 from .forms import ContactForm
 
 
 def home(request):
     latest_products = Product.objects.filter(is_active=True).select_related('category').order_by('-created_at')[:8]
     categories = Category.objects.filter(is_active=True).order_by('order', 'name')
-    active_videos = list(LivelihoodVideo.objects.filter(is_active=True).order_by('order', '-created_at')[:2])
+    active_videos = list(
+        LivelihoodVideo.objects.filter(is_active=True, show_on_home=True).order_by('order', '-created_at')[:2]
+    )
     featured_video = active_videos[0] if len(active_videos) > 0 else None
     second_video = active_videos[1] if len(active_videos) > 1 else None
     return render(request, 'store/home.html', {
@@ -21,7 +24,9 @@ def home(request):
 
 
 def shop(request):
-    products = Product.objects.filter(is_active=True).select_related('category').prefetch_related('extra_images')
+    products = Product.objects.filter(is_active=True).select_related('category').prefetch_related(
+        'extra_images'
+    )
     search_query = request.GET.get('q', '').strip()
     selected_category = request.GET.get('category', '').strip()
     sort = request.GET.get('sort', '-created_at')
@@ -63,7 +68,7 @@ def shop(request):
 
 def product_detail(request, slug):
     product = get_object_or_404(
-        Product.objects.prefetch_related('extra_images'), slug=slug, is_active=True
+        Product.objects.prefetch_related('extra_images', 'sizes__designs'), slug=slug, is_active=True
     )
     related_products = Product.objects.filter(
         category=product.category, is_active=True
@@ -93,15 +98,60 @@ def about(request):
 
 
 def contact(request):
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+    context_product = None
+
     if request.method == 'POST':
-        form = ContactForm(request.POST)
+        form = ContactForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Your message has been sent. We will get back to you soon!')
+            msg = form.save(commit=False)
+            if request.user.is_authenticated:
+                msg.customer = request.user
+            msg.save()
+            success_message = 'Thank you! Your request has been received. Our team will review your inquiry and get back to you as soon as possible.'
+            if is_ajax:
+                return JsonResponse({'ok': True, 'message': success_message})
+            messages.success(request, success_message)
             return redirect('store:contact')
+
+        if is_ajax:
+            return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+        product_id = request.POST.get('product')
+        if product_id:
+            context_product = Product.objects.filter(pk=product_id).first()
     else:
-        form = ContactForm()
-    return render(request, 'store/contact.html', {'form': form})
+        initial = {}
+        if request.user.is_authenticated:
+            initial['name'] = request.user.get_full_name()
+            initial['email'] = request.user.email
+            if request.user.phone:
+                initial['phone'] = request.user.phone
+            # Build location from profile address fields
+            loc_parts = [
+                getattr(request.user, 'address', ''),
+                getattr(request.user, 'city', ''),
+                getattr(request.user, 'province', ''),
+                getattr(request.user, 'zip_code', ''),
+            ]
+            location_str = ', '.join(p for p in loc_parts if p)
+            if location_str:
+                initial['location'] = location_str
+
+        # Opened from a product page ("Ask about this product") — auto-populate
+        # the product reference and item name, and pre-select the merged
+        # "Product & Custom Orders" category, without forcing the customer to
+        # type the product name manually.
+        product_id = request.GET.get('product')
+        if product_id:
+            context_product = Product.objects.filter(pk=product_id, is_active=True).first()
+            if context_product:
+                initial['product'] = context_product.pk
+                initial['item_name'] = context_product.name
+                initial['inquiry_type'] = ContactMessage.INQUIRY_CUSTOM_ORDER
+                initial['subject'] = f'Product & Custom Order Inquiry — {context_product.name}'
+
+        form = ContactForm(initial=initial)
+    return render(request, 'store/contact.html', {'form': form, 'context_product': context_product})
 
 
 def terms(request):

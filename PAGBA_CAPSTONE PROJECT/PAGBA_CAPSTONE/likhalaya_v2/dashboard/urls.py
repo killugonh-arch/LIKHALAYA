@@ -8,7 +8,14 @@ urlpatterns = [
     # Orders
     path('orders/', views.order_list, name='order_list'),
     path('orders/<int:pk>/', views.order_detail, name='order_detail'),
+    path('orders/<int:pk>/start-processing/', views.order_start_processing, name='order_start_processing'),
+    path('orders/<int:pk>/mark-ready/', views.order_mark_ready, name='order_mark_ready'),
+    path('orders/<int:pk>/assign-courier/', views.order_assign_courier, name='order_assign_courier'),
+    path('orders/<int:pk>/cancel/', views.order_cancel, name='order_cancel'),
     path('orders/export/csv/', views.order_export_csv, name='order_export_csv'),
+    # Courier deliveries
+    path('deliveries/', views.courier_order_list, name='courier_order_list'),
+    path('deliveries/<int:pk>/', views.courier_order_detail, name='courier_order_detail'),
     # Products
     path('products/', views.product_list, name='product_list'),
     path('products/new/', views.product_create, name='product_create'),
@@ -49,4 +56,19 @@ urlpatterns = [
     path('videos/<int:pk>/delete/', views.video_delete, name='video_delete'),
     # Customer dashboard
     path('my/', views.customer_dashboard, name='customer_home'),
+
+    # GCash QR Code Management (Staff)
+    path('gcash-qr/', views.gcash_qr_manage, name='gcash_qr_manage'),
+    path('gcash-qr/upload/', views.gcash_qr_upload, name='gcash_qr_upload'),
+    path('gcash-qr/<int:pk>/cancel-preview/', views.gcash_qr_cancel_preview, name='gcash_qr_cancel_preview'),
+    path('gcash-qr/<int:pk>/confirm/', views.gcash_qr_confirm, name='gcash_qr_confirm'),
+    path('gcash-qr/<int:pk>/request-removal/', views.gcash_qr_request_removal, name='gcash_qr_request_removal'),
+    # GCash QR Code Management (Admin)
+    path('gcash-qr/admin/', views.gcash_qr_admin, name='gcash_qr_admin'),
+    path('gcash-qr/admin/upload/', views.gcash_qr_admin_upload, name='gcash_qr_admin_upload'),
+    path('gcash-qr/admin/<int:pk>/update-details/', views.gcash_qr_admin_update_details, name='gcash_qr_admin_update_details'),
+    path('gcash-qr/admin/requests/<int:pk>/approve/', views.gcash_qr_request_approve, name='gcash_qr_request_approve'),
+    path('gcash-qr/admin/requests/<int:pk>/reject/', views.gcash_qr_request_reject, name='gcash_qr_request_reject'),
+    path('gcash-qr/admin/<int:pk>/replace/', views.gcash_qr_admin_replace, name='gcash_qr_admin_replace'),
+    path('gcash-qr/admin/<int:pk>/remove/', views.gcash_qr_admin_remove, name='gcash_qr_admin_remove'),
 ]

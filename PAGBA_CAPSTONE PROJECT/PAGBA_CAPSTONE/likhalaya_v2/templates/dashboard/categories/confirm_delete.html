@@ -2,19 +2,163 @@
 {% block page_title %}Archive Category{% endblock %}
 {% block sb_categories %}active{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+/* Scoped to this page only — does not touch global dashboard styles */
+.arc-breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #9CA3AF; margin-bottom: 24px;
+}
+.arc-breadcrumb a { color: #9CA3AF; text-decoration: none; transition: color .15s ease; }
+.arc-breadcrumb a:hover { color: #176B5F; }
+.arc-breadcrumb .sep { color: #D1D5DB; }
+.arc-breadcrumb .current { color: #176B5F; font-weight: 600; }
+
+.arc-wrap {
+  max-width: 620px;
+  width: calc(100% - 40px);
+  margin: 8px auto 0;
+}
+
+.arc-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  padding: 40px 36px;
+  text-align: center;
+}
+
+.arc-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #C2410C;
+  background: rgba(239,68,68,0.08);
+  padding: 5px 12px; border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.arc-icon-wrap {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.10);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 14px rgba(239,68,68,0.12);
+}
+.arc-icon-wrap i { font-size: 26px; color: #DC5A34; }
+
+.arc-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1F2937;
+  margin-bottom: 12px;
+}
+
+.arc-desc {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #6B7280;
+  max-width: 440px;
+  margin: 0 auto 28px;
+}
+.arc-desc strong { color: #1F2937; font-weight: 700; }
+
+.arc-actions {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; flex-wrap: wrap;
+}
+
+.arc-btn {
+  height: 46px;
+  padding: 0 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+}
+.arc-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(23,107,95,0.25);
+}
+
+.arc-btn-cancel {
+  background: #FFFFFF;
+  border-color: #E5E7EB;
+  color: #374151;
+}
+.arc-btn-cancel:hover { background: #F3F4F6; color: #374151; }
+
+.arc-btn-archive {
+  background: #DC5A34;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(220,90,52,0.28);
+  padding: 0 26px;
+}
+.arc-btn-archive:hover {
+  background: #C94E2B;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(220,90,52,0.35);
+}
+.arc-btn-archive:active { transform: translateY(0); }
+
+/* Dark mode support (reuses the same tokens the rest of the dashboard uses) */
+body.dark-mode .arc-card { background: var(--dm-surface); border-color: var(--dm-border); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+body.dark-mode .arc-title { color: var(--dm-text); }
+body.dark-mode .arc-desc { color: var(--dm-text-dim); }
+body.dark-mode .arc-desc strong { color: var(--dm-text); }
+body.dark-mode .arc-breadcrumb { color: var(--dm-text-mute); }
+body.dark-mode .arc-breadcrumb a { color: var(--dm-text-mute); }
+body.dark-mode .arc-breadcrumb .current { color: var(--dm-teal); }
+body.dark-mode .arc-btn-cancel { background: var(--dm-surface-2); border-color: var(--dm-border); color: var(--dm-text); }
+body.dark-mode .arc-btn-cancel:hover { background: var(--dm-surface-3); }
+
+@media (max-width: 576px) {
+  .arc-card { padding: 32px 22px; border-radius: 14px; }
+  .arc-title { font-size: 24px; }
+  .arc-desc { font-size: 15px; }
+  .arc-actions { flex-direction: column-reverse; align-items: stretch; }
+  .arc-btn { width: 100%; }
+}
+</style>
+{% endblock %}
+
 {% block dash_content %}
-<div class="row justify-content-center">
-  <div class="col-lg-5">
-    <div class="card border-0 shadow-sm text-center p-5">
-      <div style="font-size:56px;margin-bottom:16px;">📦</div>
-      <h4 class="fw-bold text-danger mb-2">Archive Category</h4>
-      <p class="text-muted mb-4">Move <strong>{{ category.name }}</strong> to the Archive? Its products will keep their category link, and an admin can restore it anytime from the Archive page.</p>
-      <form method="post" class="d-flex gap-2 justify-content-center">
-        {% csrf_token %}
-        <a href="{% url 'dashboard:category_list' %}" class="btn btn-outline-secondary px-4">Cancel</a>
-        <button type="submit" class="btn btn-danger px-4"><i class="fas fa-box-archive me-1"></i>Archive</button>
-      </form>
+<div class="arc-breadcrumb">
+  <a href="{% url 'dashboard:category_list' %}">Categories</a>
+  <span class="sep">/</span>
+  <span class="current">Archive Category</span>
+</div>
+
+<div class="arc-wrap">
+  <div class="arc-card">
+    <div class="arc-eyebrow"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Category Archive</div>
+
+    <div class="arc-icon-wrap">
+      <i class="fas fa-box-archive" aria-hidden="true"></i>
     </div>
+
+    <h1 class="arc-title">Archive Category</h1>
+
+    <p class="arc-desc">
+      Move <strong>{{ category.name }}</strong> to the Archive?<br>
+      Its products will keep their category link, and an admin can
+      restore it anytime from the Archive page.
+    </p>
+
+    <form method="post" class="arc-actions">
+      {% csrf_token %}
+      <a href="{% url 'dashboard:category_list' %}" class="arc-btn arc-btn-cancel">Cancel</a>
+      <button type="submit" class="arc-btn arc-btn-archive">
+        <i class="fas fa-box-archive" aria-hidden="true"></i> Archive Category
+      </button>
+    </form>
   </div>
 </div>
 {% endblock %}

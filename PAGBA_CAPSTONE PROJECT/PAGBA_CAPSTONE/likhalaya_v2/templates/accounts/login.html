@@ -11,12 +11,18 @@
 /* ============ Page shell ============ */
 .auth-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: hidden;
-  padding: 40px 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: clamp(16px, 4vw, 40px) clamp(12px, 4vw, 20px);
+  padding-top: max(clamp(16px, 4vw, 40px), env(safe-area-inset-top));
+  padding-right: max(clamp(12px, 4vw, 20px), env(safe-area-inset-right));
+  padding-bottom: max(clamp(16px, 4vw, 40px), env(safe-area-inset-bottom));
+  padding-left: max(clamp(12px, 4vw, 20px), env(safe-area-inset-left));
   background:
     radial-gradient(circle at 8% 12%, rgba(30,95,90,.10), transparent 40%),
     radial-gradient(circle at 92% 18%, rgba(232,168,42,.10), transparent 38%),
@@ -71,9 +77,6 @@
   border: 1.5px solid rgba(232,168,42,.28);
   background: transparent;
 }
-@media (max-width: 767px) {
-  .auth-page-shape { display: none; }
-}
 
 /* ============ Split card ============ */
 .auth-split-card {
@@ -82,7 +85,7 @@
   display: flex;
   width: 100%;
   max-width: 1180px;
-  min-height: 660px;
+  min-height: min(660px, 82dvh);
   background: #fff;
   border-radius: 24px;
   box-shadow: 0 25px 70px rgba(15,61,57,.14);
@@ -94,7 +97,7 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ============ LEFT: brand panel (~40%) ============ */
+/* ============ LEFT: brand panel ============ */
 .auth-brand-panel {
   flex: 0 0 40%;
   position: relative;
@@ -163,10 +166,7 @@
   transform: rotate(22deg);
   bottom: 50px; left: 58%;
 }
-
 .auth-brand-content { position: relative; z-index: 2; }
-
-/* Dual-logo lockup (homepage logos) */
 .auth-brand-logos {
   display: flex;
   align-items: center;
@@ -187,11 +187,10 @@
   width: 1px; height: 38px;
   background: rgba(255,255,255,.28);
 }
-
 .auth-brand-heading {
   font-family: 'Fraunces', serif;
   font-weight: 800;
-  font-size: 52px;
+  font-size: clamp(27px, 15px + 3vw, 52px);
   line-height: 1.1;
   letter-spacing: -.5px;
   margin-bottom: 18px;
@@ -226,6 +225,20 @@
   color: rgba(255,255,255,.55);
   margin-top: 40px;
 }
+
+/* Compact brand mark shown only when the illustration panel is hidden on phones */
+.auth-mobile-brand {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.auth-mobile-brand .logo-chip {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px;
+}
+.auth-mobile-brand .logo-chip img { height: 100%; width: 100%; object-fit: contain; }
+.auth-mobile-brand .logo-divider { width: 1px; height: 30px; background: #e0e0e0; }
 
 /* ============ RIGHT: form panel ============ */
 .auth-form-panel {
@@ -262,6 +275,7 @@
 .auth-input-wrap .auth-input-icon {
   position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
   color: #a8b0ad; font-size: 14px; pointer-events: none;
+  transition: color .18s ease;
 }
 .auth-input {
   width: 100%;
@@ -280,6 +294,26 @@
   border-color: var(--teal);
   box-shadow: 0 0 0 4px rgba(30,95,90,.10);
 }
+/* Icon turns teal when input is focused */
+.auth-input-wrap:focus-within .auth-input-icon { color: var(--teal); }
+
+/* Real-time validation states */
+.auth-input.is-valid-field {
+  border-color: #27ae60 !important;
+  box-shadow: 0 0 0 3px rgba(39,174,96,.10);
+}
+.auth-input.is-invalid-field {
+  border-color: #c0392b !important;
+  box-shadow: 0 0 0 3px rgba(192,57,43,.10);
+}
+.auth-input-wrap .field-status-icon {
+  position: absolute; right: 46px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; pointer-events: none;
+  opacity: 0; transition: opacity .18s ease;
+}
+.auth-input.is-valid-field ~ .field-status-icon { opacity: 1; color: #27ae60; }
+.auth-input.is-invalid-field ~ .field-status-icon { opacity: 1; color: #c0392b; }
+
 .auth-input-toggle {
   position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
   background: none; border: none; color: #a8b0ad; font-size: 14px;
@@ -289,7 +323,30 @@
 .auth-input-toggle:hover { color: var(--teal); }
 .auth-input-toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 6px; }
 
-.auth-field-error { color: #c0392b; font-size: 12px; margin-top: 6px; }
+.auth-field-error { color: #c0392b; font-size: 12px; margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+.auth-field-error i { font-size: 11px; }
+
+/* Strength meter */
+.pw-strength-bar {
+  height: 4px;
+  border-radius: 4px;
+  margin-top: 8px;
+  background: #eee;
+  overflow: hidden;
+}
+.pw-strength-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  width: 0%;
+  transition: width .3s ease, background .3s ease;
+}
+.pw-strength-label {
+  font-size: 11px;
+  margin-top: 4px;
+  font-weight: 600;
+  color: #aaa;
+  min-height: 16px;
+}
 
 /* Remember me */
 .auth-remember { display: flex; align-items: center; gap: 8px; margin: 10px 0 28px; }
@@ -312,7 +369,7 @@
   font-weight: 700;
   letter-spacing: .2px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: transform .18s ease, box-shadow .18s ease;
+  transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
 }
 .btn-auth:hover {
   transform: translateY(-2px);
@@ -321,6 +378,7 @@
 }
 .btn-auth:active { transform: translateY(0); }
 .btn-auth:focus-visible { outline: 2px solid #0F3D39; outline-offset: 2px; }
+.btn-auth:disabled { opacity: .7; transform: none; cursor: not-allowed; }
 
 .auth-divider { position: relative; text-align: center; margin: 24px 0; color: #c6ccc9; font-size: 12px; }
 .auth-divider::before, .auth-divider::after { content: ''; position: absolute; top: 50%; width: 42%; height: 1px; background: #eee; }
@@ -342,24 +400,63 @@
 /* Alerts */
 .auth-alert { border-radius: 10px; font-size: 13px; }
 
-/* ============ Responsive ============ */
-@media (max-width: 991px) {
-  .auth-split-card { max-width: 680px; min-height: unset; }
+/* ============ Responsive — progressive scaling ============ */
+
+/* Small desktop / tablet: 900px–1199px — two-column stays, everything shrinks */
+@media (max-width: 1199px) {
+  .auth-split-card { max-width: 760px; min-height: unset; }
   .auth-brand-panel { flex: 0 0 38%; padding: 42px 32px; }
-  .auth-brand-heading { font-size: 34px; }
   .auth-form-panel { padding: 44px 34px; }
 }
-@media (max-width: 767px) {
-  .auth-split-card { flex-direction: column; border-radius: 20px; }
-  .auth-brand-panel { flex: unset; padding: 34px 28px 26px; }
-  .auth-shape-ring, .auth-shape-blob, .auth-brand-panel::after { display: none; }
+
+/* Tablet: 600px–899px — two-column may still remain if there's room */
+@media (max-width: 899px) {
+  .auth-page-shape { display: none; }
+  .auth-split-card { max-width: 620px; }
+  .auth-brand-panel { flex: 0 0 36%; padding: 34px 26px; }
+  .auth-feature-list li { font-size: 12.5px; padding: 6px 8px; }
+  .auth-form-panel { padding: 38px 30px; }
+}
+
+/* Mobile: 381px–599px — single column, branding illustration panel hidden */
+@media (max-width: 599px) {
+  .auth-split-card { min-height: unset; border-radius: 18px; max-width: 480px; }
+  .auth-brand-panel { display: none; }
+  .auth-mobile-brand {
+    display: flex; align-items: center; justify-content: center;
+    padding: clamp(20px, 6vw, 28px) 0 0;
+  }
+  .auth-form-panel { padding: 8px clamp(16px, 5vw, 24px) clamp(28px, 7vw, 36px); }
+  .auth-form-heading, .auth-form-sub { text-align: center; }
+  .auth-input, .auth-input-group .form-control, .auth-input-wrap .form-control {
+    font-size: 16px; /* prevents iOS Safari auto-zoom on focus */
+  }
+}
+
+/* Small mobile: 320px–380px — compact form */
+@media (max-width: 380px) {
+  .auth-mobile-brand { gap: 10px; }
+  .auth-mobile-brand .logo-chip { width: 38px; height: 38px; }
+  .auth-mobile-brand .logo-divider { height: 24px; }
+  .auth-form-panel { padding: 6px 14px 24px; }
+  .auth-form-heading { font-size: 22px; }
+  .auth-form-sub { font-size: 13px; margin-bottom: 22px; }
+  .auth-input-label { font-size: 12px; }
+  .auth-input { height: 48px; }
+  .btn-auth { height: 50px; font-size: 14px; }
+}
+
+/* Short / landscape phones — keep the form reachable without excess scrolling */
+@media (orientation: landscape) and (max-height: 500px) {
+  .auth-page { align-items: flex-start; }
+  .auth-split-card { min-height: unset; }
+  .auth-brand-panel { padding: 20px 28px; }
   .auth-feature-list { display: none; }
-  .auth-brand-heading { font-size: 27px; }
-  .auth-brand-logos { margin-bottom: 18px; }
-  .auth-brand-logos .logo-chip { width: 60px; height: 60px; }
-  .auth-brand-sub { margin-bottom: 6px; }
-  .auth-brand-footer { margin-top: 16px; }
-  .auth-form-panel { padding: 32px 24px 40px; }
+  .auth-brand-logos { margin-bottom: 12px; }
+  .auth-form-panel { padding: 20px 30px; }
+  .auth-form-heading { margin-bottom: 3px; }
+  .auth-form-sub { margin-bottom: 16px; }
+  .auth-input-group { margin-bottom: 12px; }
 }
 </style>
 {% endblock %}
@@ -372,7 +469,7 @@
   <span class="auth-page-shape shape-4"></span>
   <div class="auth-split-card">
 
-    <!-- ============ LEFT BRAND PANEL ============ -->
+    <!-- LEFT BRAND PANEL -->
     <div class="auth-brand-panel">
       <div class="auth-shape-ring"></div>
       <div class="auth-shape-blob"></div>
@@ -396,8 +493,13 @@
       <div class="auth-brand-footer">© 2026 Likhalaya</div>
     </div>
 
-    <!-- ============ RIGHT LOGIN PANEL ============ -->
+    <!-- RIGHT LOGIN PANEL -->
     <div class="auth-form-panel">
+      <div class="auth-mobile-brand">
+        <span class="logo-chip"><img src="{% static 'imgs/likhalaya.png' %}" alt="Likhalaya" onerror="this.parentElement.style.display='none'"></span>
+        <span class="logo-divider"></span>
+        <span class="logo-chip"><img src="{% static 'imgs/c_logo.png' %}" alt="BJMP" onerror="this.parentElement.style.display='none'"></span>
+      </div>
       <div class="auth-form-inner">
         <h1 class="auth-form-heading">Welcome Back</h1>
         <p class="auth-form-sub">Sign in to your Likhalaya account</p>
@@ -410,29 +512,44 @@
         {% endfor %}
         {% endif %}
 
-        <form method="post" novalidate>
+        <form method="post" novalidate id="loginForm" autocomplete="on">
           {% csrf_token %}
 
+          <!-- Email -->
           <div class="auth-input-group">
-            <label for="id_username" class="auth-input-label">Username or Email</label>
+            <label for="id_username" class="auth-input-label">Email</label>
             <div class="auth-input-wrap">
-              <i class="fas fa-user auth-input-icon"></i>
-              <input type="text" name="username" id="id_username" class="auth-input" placeholder="Enter your username or email" autofocus autocapitalize="none" autocomplete="username"
+              <i class="fas fa-envelope auth-input-icon"></i>
+              <input type="email" name="username" id="id_username"
+                     class="auth-input{% if form.username.errors %} is-invalid-field{% endif %}"
+                     placeholder="Enter your email"
+                     autofocus autocapitalize="none" autocomplete="email"
                      value="{{ form.username.value|default:'' }}">
+              <i class="fas fa-check-circle field-status-icon"></i>
             </div>
-            {% if form.username.errors %}<div class="auth-field-error">{{ form.username.errors.0 }}</div>{% endif %}
+            {% if form.username.errors %}
+            <div class="auth-field-error"><i class="fas fa-circle-exclamation"></i>{{ form.username.errors.0 }}</div>
+            {% endif %}
           </div>
 
+          <!-- Password -->
           <div class="auth-input-group">
             <label for="id_password" class="auth-input-label">Password</label>
             <div class="auth-input-wrap">
               <i class="fas fa-lock auth-input-icon"></i>
-              <input type="password" name="password" id="id_password" class="auth-input" placeholder="Enter your password" style="padding-right:46px;">
+              <input type="password" name="password" id="id_password"
+                     class="auth-input{% if form.non_field_errors %} is-invalid-field{% endif %}"
+                     placeholder="Enter your password"
+                     style="padding-right:76px;"
+                     autocomplete="current-password">
+              <i class="fas fa-check-circle field-status-icon" style="right:46px;"></i>
               <button type="button" class="auth-input-toggle" id="togglePw" aria-label="Toggle password visibility">
                 <i class="fas fa-eye" id="eyeIcon"></i>
               </button>
             </div>
-            {% if form.non_field_errors %}<div class="auth-field-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+            {% if form.non_field_errors %}
+            <div class="auth-field-error"><i class="fas fa-circle-exclamation"></i>{{ form.non_field_errors.0 }}</div>
+            {% endif %}
           </div>
 
           <div class="auth-remember">
@@ -440,8 +557,9 @@
             <label for="rememberMe">Remember me</label>
           </div>
 
-          <button type="submit" class="btn-auth">
-            <i class="fas fa-sign-in-alt"></i>Sign In
+          <button type="submit" class="btn-auth" id="loginSubmitBtn" disabled>
+            <i class="fas fa-sign-in-alt" id="loginBtnIcon"></i>
+            <span id="loginBtnText">Sign In</span>
           </button>
         </form>
 
@@ -461,12 +579,68 @@
 
 {% block extra_js %}
 <script>
-document.getElementById('togglePw').addEventListener('click', function() {
-  const pw = document.getElementById('id_password');
-  const icon = document.getElementById('eyeIcon');
-  const isText = pw.type === 'text';
-  pw.type = isText ? 'password' : 'text';
-  icon.className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
-});
+(function () {
+  'use strict';
+
+  const usernameInput = document.getElementById('id_username');
+  const passwordInput = document.getElementById('id_password');
+  const togglePwBtn   = document.getElementById('togglePw');
+  const eyeIcon       = document.getElementById('eyeIcon');
+  const submitBtn     = document.getElementById('loginSubmitBtn');
+  const loginForm     = document.getElementById('loginForm');
+
+  /* --- helpers --- */
+  function setFieldState(input, valid) {
+    input.classList.toggle('is-valid-field', valid);
+    input.classList.toggle('is-invalid-field', !valid);
+  }
+
+  function clearFieldState(input) {
+    input.classList.remove('is-valid-field', 'is-invalid-field');
+  }
+
+  function updateSubmitState() {
+    const hasUser = usernameInput.value.trim().length > 0;
+    const hasPw   = passwordInput.value.length > 0;
+    submitBtn.disabled = !(hasUser && hasPw);
+  }
+
+  /* --- username: validate on blur, clear on focus --- */
+  usernameInput.addEventListener('blur', function () {
+    const val = this.value.trim();
+    if (val.length === 0) { clearFieldState(this); return; }
+    setFieldState(this, val.length >= 3);
+  });
+  usernameInput.addEventListener('focus', function () { clearFieldState(this); });
+  usernameInput.addEventListener('input', updateSubmitState);
+
+  /* --- password: validate on blur, clear on focus --- */
+  passwordInput.addEventListener('blur', function () {
+    const val = this.value;
+    if (val.length === 0) { clearFieldState(this); return; }
+    setFieldState(this, val.length >= 6);
+  });
+  passwordInput.addEventListener('focus', function () { clearFieldState(this); });
+  passwordInput.addEventListener('input', updateSubmitState);
+
+  /* --- password visibility toggle --- */
+  togglePwBtn.addEventListener('click', function () {
+    const isText = passwordInput.type === 'text';
+    passwordInput.type = isText ? 'password' : 'text';
+    eyeIcon.className  = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
+  });
+
+  /* --- anti-double-submit --- */
+  loginForm.addEventListener('submit', function () {
+    if (submitBtn.disabled) return false;
+    submitBtn.disabled = true;
+    document.getElementById('loginBtnIcon').className = 'fas fa-spinner fa-spin';
+    document.getElementById('loginBtnText').textContent = 'Signing In…';
+  });
+
+  /* --- initial state (pre-filled fields on back-navigation) --- */
+  updateSubmitState();
+  if (usernameInput.value.trim().length > 0) setFieldState(usernameInput, true);
+})();
 </script>
 {% endblock %}

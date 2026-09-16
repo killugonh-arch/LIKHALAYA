@@ -18,6 +18,7 @@ class CustomUser(AbstractUser):
         ('customer', 'Customer'),
         ('staff', 'Staff'),
         ('coordinator', 'PDL Coordinator'),
+        ('courier', 'Delivery Courier'),
         ('admin', 'Administrator'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
@@ -51,6 +52,9 @@ class CustomUser(AbstractUser):
 
     def is_staff_user(self):
         return self.role in ['admin', 'staff', 'coordinator'] or self.is_superuser
+
+    def is_courier_user(self):
+        return self.role == 'courier'
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip() or self.username

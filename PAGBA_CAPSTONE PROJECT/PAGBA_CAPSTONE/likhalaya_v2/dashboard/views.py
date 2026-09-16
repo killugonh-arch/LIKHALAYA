@@ -1,7 +1,9 @@
 import json
+import re
 import csv
 import functools
 from io import BytesIO
+from decimal import Decimal, InvalidOperation
 from datetime import timedelta, date
 
 from openpyxl import Workbook
@@ -14,17 +16,156 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Sum, Count, Q, Avg, Case, When, Value, IntegerField
 from django.db.models.functions import TruncMonth, TruncDate
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
 
-from store.models import Product, Category, ContactMessage, LivelihoodVideo, ProductImage
+from store.models import Product, Category, ContactMessage, LivelihoodVideo, ProductImage, ProductSize, ProductDesign
 from store.forms import ProductForm, ProductImageFormSet
-from orders.models import Order, OrderItem, Notification
+from orders.models import Order, OrderItem, Notification, OrderStatusError, GCashQRCode, GCashQRRemovalRequest
 from accounts.models import CustomUser, ActivityLog
 from accounts.activity import log_activity
+
+
+def _parse_variant_post(post):
+    """Parse the Size → Design fields (size-<i>-*, design-<i>-<j>-*)
+    submitted by the product form. Returns (sizes, errors); does NOT touch
+    the database. A size is just Small/Medium/Large — it has no price of
+    its own (that always comes from the Product's Pricing & Inventory
+    fields). A design is a photo + title only. `sizes` is a list of dicts:
+      {'index', 'id', 'name', 'is_active', 'delete', 'designs': [
+          {'index', 'id', 'title', 'is_active', 'delete'}
+      ]}
+    """
+    errors = []
+    valid_names = {'S', 'M', 'L'}
+    size_indices = sorted(set(
+        int(m.group(1)) for k in post
+        for m in [re.match(r'^size-(\d+)-name$', k)] if m
+    ))
+
+    sizes = []
+    for si in size_indices:
+        p = f'size-{si}-'
+        delete = bool(post.get(p + 'DELETE'))
+        name = (post.get(p + 'name') or '').strip().upper()
+        size_entry = {
+            'index': si, 'id': post.get(p + 'id') or None,
+            'name': name, 'is_active': bool(post.get(p + 'is_active')),
+            'delete': delete, 'designs': [],
+        }
+        if not delete and name not in valid_names:
+            errors.append(f'Size #{si + 1}: choose Small, Medium, or Large.')
+
+        design_indices = sorted(set(
+            int(m.group(1)) for k in post
+            for m in [re.match(rf'^design-{si}-(\d+)-title$', k)] if m
+        ))
+        for di in design_indices:
+            dp = f'design-{si}-{di}-'
+            d_delete = bool(post.get(dp + 'DELETE'))
+            title = (post.get(dp + 'title') or '').strip()
+            color = (post.get(dp + 'color') or '').strip()
+            if not d_delete and not delete and not title:
+                errors.append(f'Size "{name}": every design needs a title.')
+            raw_stock = (post.get(dp + 'stock') or '').strip()
+            try:
+                stock = max(0, int(raw_stock)) if raw_stock else 0
+            except (TypeError, ValueError):
+                stock = 0
+                if not d_delete and not delete:
+                    errors.append(f'Size "{name}" · "{title or "design"}": quantity must be a whole number.')
+            size_entry['designs'].append({
+                'index': di, 'id': post.get(dp + 'id') or None,
+                'title': title, 'color': color,
+                'is_active': bool(post.get(dp + 'is_active')),
+                'delete': d_delete, 'stock': stock,
+            })
+        sizes.append(size_entry)
+
+    return sizes, errors
+
+
+def _size_panels(product):
+    """Always return exactly 3 panels — Small, Medium, Large — in that
+    fixed order, each paired with its existing ProductSize (or None if the
+    merchant hasn't added anything under that tier yet). This is what lets
+    the "Sizes & Designs" section in the product form show fixed S/M/L
+    slots instead of a size picker: the sizes already exist conceptually
+    via the Pricing & Inventory fields, so here it's designs-only."""
+    codes = [('S', 'Small'), ('M', 'Medium'), ('L', 'Large')]
+    existing = {}
+    if product and product.pk:
+        for s in product.sizes.all():
+            existing.setdefault(s.name, s)
+    return [{'code': code, 'label': label, 'size': existing.get(code)} for code, label in codes]
+
+
+def _apply_variants(product, sizes, files):
+    """Create/update/delete ProductSize + ProductDesign rows for `product`
+    from the parsed `sizes` structure (see _parse_variant_post). Must run
+    inside a transaction, and only after `_parse_variant_post` reported no
+    errors."""
+    for s in sizes:
+        if s['delete']:
+            if s['id']:
+                ProductSize.objects.filter(pk=s['id'], product=product).delete()
+            continue
+
+        has_any_design = any(not d['delete'] for d in s['designs'])
+        if not s['id'] and not s['is_active'] and not has_any_design:
+            # A fixed Small/Medium/Large panel the merchant never touched
+            # (left inactive, no designs added) — don't create a blank
+            # ProductSize row for it.
+            continue
+
+        if s['id']:
+            size_obj = get_object_or_404(ProductSize, pk=s['id'], product=product)
+            size_obj.name = s['name']
+            size_obj.is_active = s['is_active']
+            size_obj.order = s['index']
+            size_obj.save()
+        else:
+            size_obj = ProductSize.objects.create(
+                product=product, name=s['name'],
+                is_active=s['is_active'], order=s['index'],
+            )
+
+        for d in s['designs']:
+            if d['delete']:
+                if d['id']:
+                    ProductDesign.objects.filter(pk=d['id'], product_size=size_obj).delete()
+                continue
+
+            image_file = files.get(f"design-{s['index']}-{d['index']}-image")
+            # Each design carries its OWN quantity, entered directly in the
+            # form — it is never derived from another field. The product's
+            # overall stock is instead derived FROM these (see the
+            # `product.recalculate_stock()` call after this loop).
+            if d['id']:
+                design_obj = get_object_or_404(ProductDesign, pk=d['id'], product_size=size_obj)
+                design_obj.title = d['title']
+                design_obj.color = d['color']
+                design_obj.is_active = d['is_active']
+                design_obj.order = d['index']
+                design_obj.stock = d['stock']
+                if image_file:
+                    design_obj.image = image_file
+                design_obj.save()
+            else:
+                ProductDesign.objects.create(
+                    product_size=size_obj, title=d['title'], color=d['color'],
+                    image=image_file, is_active=d['is_active'], order=d['index'], stock=d['stock'],
+                )
+
+    # The admin never edits total stock directly — it's always the sum of
+    # every active design's own quantity, recalculated here after every
+    # create/update/delete pass over the size/design tree.
+    product.recalculate_stock()
 
 
 # ─── Decorators ────────────────────────────────────────────────────────────────
@@ -46,6 +187,19 @@ def admin_required(view_func):
         if not request.user.is_admin_user():
             messages.error(request, 'Access denied. Admins only.')
             return redirect('dashboard:home')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def courier_required(view_func):
+    """Allows our own delivery couriers, plus admins (who can act on behalf
+    of any courier). Regular staff/coordinator accounts are NOT couriers."""
+    @functools.wraps(view_func)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if not (request.user.is_courier_user() or request.user.is_admin_user()):
+            messages.error(request, 'Access denied. Delivery couriers only.')
+            return redirect('store:home')
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -187,6 +341,14 @@ def message_list(request):
 @staff_required
 def message_detail(request, pk):
     msg = get_object_or_404(ContactMessage, pk=pk)
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status in dict(ContactMessage.STATUS_CHOICES):
+            msg.status = new_status
+        msg.staff_notes = request.POST.get('staff_notes', msg.staff_notes)
+        msg.save(update_fields=['status', 'staff_notes'])
+        messages.success(request, 'Request updated.')
+        return redirect('dashboard:message_detail', pk=pk)
     if not msg.is_read:
         msg.is_read = True
         msg.save(update_fields=['is_read'])
@@ -235,38 +397,68 @@ def product_list(request):
 @staff_required
 def product_detail(request, pk):
     product = get_object_or_404(
-        Product.objects.select_related('category').prefetch_related('extra_images'), pk=pk
+        Product.objects.select_related('category').prefetch_related(
+            'extra_images', 'sizes__designs'
+        ),
+        pk=pk
     )
     gallery_by_size = {'General': [], 'Small': [], 'Medium': [], 'Large': []}
     size_labels = {'S': 'Small', 'M': 'Medium', 'L': 'Large'}
     for img in product.extra_images.all():
         label = size_labels.get(img.size, 'General')
         gallery_by_size[label].append(img)
+
+    # Build the Size → Designs tree for the redesigned Variants section,
+    # plus dynamic summary counts (sizes/designs/total stock). Nothing here
+    # is hard-coded — it's all derived from this product's own rows.
+    size_rows = list(product.sizes.all().order_by('order', 'id'))
+    total_designs = 0
+    total_stock = 0
+    for s in size_rows:
+        designs = list(s.designs.all().order_by('order', 'id'))
+        s.design_list = designs
+        s.design_count = len(designs)
+        s.stock_total = sum(d.stock for d in designs)
+        total_designs += s.design_count
+        total_stock += s.stock_total
+
     return render(request, 'dashboard/products/detail.html', {
         'product': product,
         'gallery_by_size': gallery_by_size,
+        'size_rows': size_rows,
+        'variant_summary': {
+            'size_count': len(size_rows),
+            'design_count': total_designs,
+            'total_stock': total_stock,
+        },
     })
 
 
 @staff_required
 def product_create(request):
     if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES)
+        form = ProductForm(request.POST, request.FILES, user=request.user)
         image_formset = ProductImageFormSet(request.POST, request.FILES, prefix='images')
-        if form.is_valid() and image_formset.is_valid():
-            product = form.save()
-            image_formset.instance = product
-            image_formset.save()
+        variant_sizes, variant_errors = _parse_variant_post(request.POST)
+        if form.is_valid() and image_formset.is_valid() and not variant_errors:
+            with transaction.atomic():
+                product = form.save()
+                image_formset.instance = product
+                image_formset.save()
+                _apply_variants(product, variant_sizes, request.FILES)
             log_activity(request, 'create', f'Created product "{product.name}"',
                          resource='Product', resource_label=product.name,
                          new_value=f'{product.price_display} · stock {product.stock}')
             messages.success(request, f'Product "{product.name}" created successfully!')
             return redirect('dashboard:product_list')
+        for err in variant_errors:
+            messages.error(request, err)
     else:
-        form = ProductForm()
+        form = ProductForm(user=request.user)
         image_formset = ProductImageFormSet(prefix='images')
     return render(request, 'dashboard/products/form.html', {
         'form': form, 'image_formset': image_formset, 'title': 'Add Product',
+        'size_panels': _size_panels(None),
     })
 
 
@@ -290,11 +482,14 @@ def product_edit(request, pk):
             'artisan_name': product.artisan_name,
             'image': product.image.name if product.image else '',
         }
-        form = ProductForm(request.POST, request.FILES, instance=product)
+        form = ProductForm(request.POST, request.FILES, instance=product, user=request.user)
         image_formset = ProductImageFormSet(request.POST, request.FILES, instance=product, prefix='images')
-        if form.is_valid() and image_formset.is_valid():
-            form.save()
-            image_formset.save()
+        variant_sizes, variant_errors = _parse_variant_post(request.POST)
+        if form.is_valid() and image_formset.is_valid() and not variant_errors:
+            with transaction.atomic():
+                form.save()
+                image_formset.save()
+                _apply_variants(product, variant_sizes, request.FILES)
 
             new_values = {
                 'name': product.name,
@@ -351,11 +546,27 @@ def product_edit(request, pk):
                          new_value=new_value)
             messages.success(request, f'Product "{product.name}" updated!')
             return redirect('dashboard:product_list')
+        for err in variant_errors:
+            messages.error(request, err)
+        if not form.is_valid():
+            for field, field_errors in form.errors.items():
+                label = form.fields[field].label if field in form.fields else field
+                for fe in field_errors:
+                    messages.error(request, f'{label}: {fe}')
+        if not image_formset.is_valid():
+            for fe in image_formset.non_form_errors():
+                messages.error(request, fe)
+            for i, img_form in enumerate(image_formset.forms):
+                for field, field_errors in img_form.errors.items():
+                    for fe in field_errors:
+                        messages.error(request, f'Photo #{i + 1} — {field}: {fe}')
     else:
-        form = ProductForm(instance=product)
+        form = ProductForm(instance=product, user=request.user)
         image_formset = ProductImageFormSet(instance=product, prefix='images')
     return render(request, 'dashboard/products/form.html', {
-        'form': form, 'image_formset': image_formset, 'title': 'Edit Product', 'product': product,
+        'form': form, 'image_formset': image_formset,
+        'title': 'Edit Product', 'product': product,
+        'size_panels': _size_panels(product),
     })
 
 
@@ -414,42 +625,151 @@ def order_list(request):
 @staff_required
 def order_detail(request, pk):
     order = get_object_or_404(Order, pk=pk)
-    if request.method == 'POST':
-        new_status = request.POST.get('status')
-        if new_status in dict(Order.STATUS_CHOICES):
-            old_status = order.status
-            if new_status == 'cancelled' and old_status != 'cancelled':
-                order.previous_status = old_status
-            order.status = new_status
-            order.save()
-
-            if new_status == 'cancelled' and old_status != 'cancelled':
-                order.restock_items()
-
-            if new_status != old_status:
-                log_activity(
-                    request, 'status_change',
-                    f'Order {order.order_number} status: {old_status} → {new_status}',
-                    resource='Order', resource_label=order.order_number,
-                    previous_value=old_status, new_value=new_status,
-                )
-
-            if new_status != old_status and order.user:
-                status_messages = {
-                    'confirmed': f'Your order {order.order_number} has been confirmed.',
-                    'shipped': f'Good news! Your order {order.order_number} has been shipped and is on its way.',
-                    'delivered': f'Your order {order.order_number} has been delivered. Enjoy!',
-                }
-                note_message = status_messages.get(new_status)
-                if note_message:
-                    Notification.objects.create(user=order.user, order=order, message=note_message)
-
-            messages.success(request, f'Order {order.order_number} updated: {old_status} → {new_status}.')
-            return redirect('dashboard:order_detail', pk=pk)
+    couriers = CustomUser.objects.filter(role='courier', is_active=True).order_by('first_name', 'username')
     return render(request, 'dashboard/orders/detail.html', {
         'order': order,
         'status_choices': Order.STATUS_CHOICES,
+        'couriers': couriers,
     })
+
+
+def _log_and_notify(request, order, old_status, new_status, note_message=None):
+    if new_status != old_status:
+        log_activity(
+            request, 'status_change',
+            f'Order {order.order_number} status: {old_status} → {new_status}',
+            resource='Order', resource_label=order.order_number,
+            previous_value=old_status, new_value=new_status,
+        )
+    if note_message and order.user:
+        Notification.objects.create(user=order.user, order=order, message=note_message)
+
+
+@staff_required
+@require_POST
+def order_start_processing(request, pk):
+    """Task action: 'Start Processing'. Pending -> Processing, no dropdown."""
+    order = get_object_or_404(Order, pk=pk)
+    old_status = order.status
+    try:
+        order.start_processing()
+    except OrderStatusError as e:
+        messages.error(request, str(e))
+    else:
+        _log_and_notify(request, order, old_status, order.status)
+        messages.success(request, f'Order {order.order_number} is now being processed.')
+    return redirect('dashboard:order_detail', pk=pk)
+
+
+@staff_required
+@require_POST
+def order_mark_ready(request, pk):
+    """Task action: 'Mark Ready for Delivery'. Processing -> Confirmed."""
+    order = get_object_or_404(Order, pk=pk)
+    old_status = order.status
+    try:
+        order.mark_ready_for_delivery()
+    except OrderStatusError as e:
+        messages.error(request, str(e))
+    else:
+        _log_and_notify(
+            request, order, old_status, order.status,
+            note_message=f'Your order {order.order_number} has been confirmed and is ready for delivery.',
+        )
+        messages.success(request, f'Order {order.order_number} is confirmed and ready for delivery.')
+    return redirect('dashboard:order_detail', pk=pk)
+
+
+@staff_required
+@require_POST
+def order_assign_courier(request, pk):
+    """Assign one of our delivery personnel to handle pickup/delivery for
+    this order. Does not change the order status by itself."""
+    order = get_object_or_404(Order, pk=pk)
+    courier_id = request.POST.get('courier_id')
+    courier = CustomUser.objects.filter(pk=courier_id, role='courier').first() if courier_id else None
+    if courier_id and not courier:
+        messages.error(request, 'Please select a valid courier.')
+        return redirect('dashboard:order_detail', pk=pk)
+    try:
+        order.assign_courier(courier)
+    except OrderStatusError as e:
+        messages.error(request, str(e))
+    else:
+        log_activity(
+            request, 'update',
+            f'Order {order.order_number} assigned to courier: {courier.get_full_name() if courier else "unassigned"}',
+            resource='Order', resource_label=order.order_number,
+        )
+        messages.success(request, f'Order {order.order_number} assigned to {courier.get_full_name() if courier else "no courier"}.')
+    return redirect('dashboard:order_detail', pk=pk)
+
+
+@staff_required
+@require_POST
+def order_cancel(request, pk):
+    """Explicit, separate Cancel action — never part of the status dropdown."""
+    order = get_object_or_404(Order, pk=pk)
+    old_status = order.status
+    try:
+        order.cancel()
+    except OrderStatusError as e:
+        messages.error(request, str(e))
+    else:
+        _log_and_notify(request, order, old_status, order.status)
+        messages.success(request, f'Order {order.order_number} has been cancelled.')
+    return redirect('dashboard:order_detail', pk=pk)
+
+
+# ─── Courier delivery workflow ──────────────────────────────────────────────
+@courier_required
+def courier_order_list(request):
+    """A courier only ever sees orders assigned to them. An admin browsing
+    this page sees every order that currently needs a courier action."""
+    orders = Order.objects.filter(status__in=['confirmed', 'shipped']).select_related('assigned_courier', 'user')
+    if request.user.is_courier_user():
+        orders = orders.filter(assigned_courier=request.user)
+    orders = orders.prefetch_related('items').order_by('-created_at')
+    return render(request, 'dashboard/courier/list.html', {'orders': orders})
+
+
+@courier_required
+def courier_order_detail(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    if request.user.is_courier_user() and order.assigned_courier_id != request.user.id:
+        messages.error(request, 'This order is not assigned to you.')
+        return redirect('dashboard:courier_order_list')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        old_status = order.status
+        if action == 'confirm_pickup':
+            proof = request.FILES.get('pickup_proof')
+            try:
+                order.confirm_pickup(proof)
+            except OrderStatusError as e:
+                messages.error(request, str(e))
+            else:
+                _log_and_notify(
+                    request, order, old_status, order.status,
+                    note_message=f'Good news! Your order {order.order_number} has been shipped and is on its way.',
+                )
+                messages.success(request, f'Pickup confirmed — order {order.order_number} is now Shipped.')
+        elif action == 'confirm_delivery':
+            proof = request.FILES.get('delivery_proof')
+            try:
+                order.confirm_delivery(proof)
+            except OrderStatusError as e:
+                messages.error(request, str(e))
+            else:
+                _log_and_notify(
+                    request, order, old_status, order.status,
+                    note_message=f'Your order {order.order_number} has been delivered. Enjoy!',
+                )
+                messages.success(request, f'Delivery confirmed — order {order.order_number} is now Delivered.')
+        return redirect('dashboard:courier_order_detail', pk=pk)
+
+    return render(request, 'dashboard/courier/detail.html', {'order': order})
 
 
 @staff_required
@@ -1787,3 +2107,286 @@ def video_delete(request, pk):
         messages.success(request, f'Video "{title}" deleted.')
         return redirect('dashboard:video_list')
     return render(request, 'dashboard/videos/confirm_delete.html', {'video': video})
+
+# ─── GCash QR Code Management ──────────────────────────────────────────────
+QR_MIN_SIZE = 5 * 1024        # 5 KB
+QR_MAX_SIZE = 2 * 1024 * 1024  # 2 MB
+QR_ALLOWED_EXTS = ('.png', '.jpg', '.jpeg')
+
+
+def _qr_validate_image(f):
+    """Returns an error string, or None if the uploaded file is acceptable."""
+    if not f:
+        return 'Please choose a QR code image to upload.'
+    name = f.name.lower()
+    if not name.endswith(QR_ALLOWED_EXTS):
+        return 'Only PNG, JPG, or JPEG image files are allowed.'
+    if f.size < QR_MIN_SIZE:
+        return 'That image is too small to be a real QR code. Please upload a genuine QR code image.'
+    if f.size > QR_MAX_SIZE:
+        return 'That image is too large (must be under 2 MB).'
+    return None
+
+
+@staff_required
+def gcash_qr_manage(request):
+    """Main Staff page: read-only view of the GCash QR code exactly as
+    customers see it at checkout ("Pay with GCash"). Staff can look, but
+    only an Administrator can upload, replace, or remove it — that's done
+    from the separate Admin QR page (gcash_qr_admin)."""
+    pending = GCashQRCode.get_pending_confirm()
+    active = GCashQRCode.get_active()
+    latest_request = None
+    if active:
+        latest_request = active.removal_requests.order_by('-created_at').first()
+
+    return render(request, 'dashboard/gcash_qr/manage.html', {
+        'pending': pending,
+        'active': active,
+        'latest_request': latest_request,
+        'can_upload': GCashQRCode.can_staff_upload_new(),
+        'removal_reasons': GCashQRRemovalRequest.REASON_CHOICES,
+    })
+
+
+@admin_required
+@require_POST
+def gcash_qr_upload(request):
+    """Admin-only: selects a QR image. This does NOT activate it yet — it's
+    saved as a pending preview that must be explicitly confirmed."""
+    if not GCashQRCode.can_staff_upload_new():
+        messages.error(request, 'A GCash QR code is already active or awaiting action. It must be cleared before uploading a new one.')
+        return redirect('dashboard:gcash_qr_manage')
+
+    f = request.FILES.get('image')
+    error = _qr_validate_image(f)
+    if error:
+        messages.error(request, error)
+        return redirect('dashboard:gcash_qr_manage')
+
+    qr = GCashQRCode.objects.create(
+        image=f, status=GCashQRCode.STATUS_PENDING_CONFIRM, uploaded_by=request.user,
+    )
+    log_activity(request, 'create', 'Uploaded a GCash QR code for preview (not yet activated)',
+                 resource='GCashQRCode', resource_label=f'QR #{qr.pk}')
+    messages.success(request, 'QR code uploaded. Review the preview carefully before confirming.')
+    return redirect('dashboard:gcash_qr_manage')
+
+
+@admin_required
+@require_POST
+def gcash_qr_cancel_preview(request, pk):
+    """Discard an unconfirmed preview and return to the upload screen."""
+    qr = get_object_or_404(GCashQRCode, pk=pk, status=GCashQRCode.STATUS_PENDING_CONFIRM)
+    qr.delete()
+    messages.info(request, 'Upload cancelled.')
+    return redirect('dashboard:gcash_qr_manage')
+
+
+@admin_required
+@require_POST
+def gcash_qr_confirm(request, pk):
+    """Locks in the previewed QR code as the active GCash QR code. Only an
+    Administrator can do this — once locked it can only be changed by an
+    Administrator again."""
+    qr = get_object_or_404(GCashQRCode, pk=pk, status=GCashQRCode.STATUS_PENDING_CONFIRM)
+    qr.status = GCashQRCode.STATUS_ACTIVE_LOCKED
+    qr.confirmed_at = timezone.now()
+    qr.save(update_fields=['status', 'confirmed_at'])
+    log_activity(request, 'status_change', 'Confirmed and activated a GCash QR code (now locked)',
+                 resource='GCashQRCode', resource_label=f'QR #{qr.pk}',
+                 previous_value='Pending Staff Confirmation', new_value='Active & Locked')
+    messages.success(request, 'GCash QR code is now Active & Locked.')
+    return redirect('dashboard:gcash_qr_manage')
+
+
+@staff_required
+def gcash_qr_request_removal(request, pk):
+    """Staff-facing form to request that an Admin remove/replace the
+    currently locked QR code."""
+    qr = get_object_or_404(GCashQRCode, pk=pk)
+    if qr.status not in (GCashQRCode.STATUS_ACTIVE_LOCKED,):
+        messages.error(request, 'A removal request can only be submitted for an active, locked QR code.')
+        return redirect('dashboard:gcash_qr_manage')
+
+    if request.method == 'POST':
+        reason = request.POST.get('reason', GCashQRRemovalRequest.REASON_OTHER)
+        explanation = request.POST.get('explanation', '').strip()
+        valid_reasons = dict(GCashQRRemovalRequest.REASON_CHOICES)
+        if reason not in valid_reasons:
+            reason = GCashQRRemovalRequest.REASON_OTHER
+        if reason == GCashQRRemovalRequest.REASON_OTHER and not explanation:
+            messages.error(request, 'Please provide an explanation for "Other reason".')
+            return redirect('dashboard:gcash_qr_request_removal', pk=qr.pk)
+
+        req = GCashQRRemovalRequest.objects.create(
+            qr_code=qr, requested_by=request.user, reason=reason, explanation=explanation,
+        )
+        qr.status = GCashQRCode.STATUS_REMOVAL_PENDING
+        qr.save(update_fields=['status'])
+        log_activity(request, 'other', f'Requested removal of GCash QR code ({req.get_reason_display()})',
+                     resource='GCashQRCode', resource_label=f'QR #{qr.pk}',
+                     previous_value='Active & Locked', new_value='Removal Request Pending')
+        messages.success(request, 'Your removal request has been submitted to the Administrator.')
+        return redirect('dashboard:gcash_qr_manage')
+
+    return render(request, 'dashboard/gcash_qr/request_removal.html', {
+        'qr': qr,
+        'removal_reasons': GCashQRRemovalRequest.REASON_CHOICES,
+    })
+
+
+# ── Admin authority ──
+@admin_required
+def gcash_qr_admin(request):
+    """Admin overview: current QR code, its full history (paginated, 5 per
+    page), and any pending or past Staff removal/replacement requests."""
+    active = GCashQRCode.get_active()
+    pending = GCashQRCode.get_pending_confirm()
+
+    history_qs = GCashQRCode.objects.all().order_by('-created_at')
+    paginator = Paginator(history_qs, 5)
+    page_number = request.GET.get('history_page')
+    history = paginator.get_page(page_number)
+
+    requests_qs = GCashQRRemovalRequest.objects.select_related('qr_code', 'requested_by', 'decided_by').order_by('-created_at')[:25]
+
+    return render(request, 'dashboard/gcash_qr/admin.html', {
+        'active': active,
+        'pending': pending,
+        'history': history,
+        'requests': requests_qs,
+    })
+
+
+@admin_required
+@require_POST
+def gcash_qr_request_approve(request, pk):
+    """Admin approves a Staff removal request: the old QR is deactivated
+    and Staff regain the ability to upload a replacement."""
+    req = get_object_or_404(GCashQRRemovalRequest, pk=pk, status=GCashQRRemovalRequest.STATUS_PENDING)
+    qr = req.qr_code
+    decision_reason = request.POST.get('decision_reason', '').strip()
+
+    req.status = GCashQRRemovalRequest.STATUS_APPROVED
+    req.decided_by = request.user
+    req.decision_reason = decision_reason
+    req.decided_at = timezone.now()
+    req.save(update_fields=['status', 'decided_by', 'decision_reason', 'decided_at'])
+
+    qr.status = GCashQRCode.STATUS_INACTIVE
+    qr.deactivated_at = timezone.now()
+    qr.save(update_fields=['status', 'deactivated_at'])
+
+    log_activity(request, 'status_change', 'Approved GCash QR removal request — QR deactivated, Staff can upload a replacement',
+                 resource='GCashQRCode', resource_label=f'QR #{qr.pk}',
+                 previous_value='Removal Request Pending', new_value='Removal Approved / Inactive')
+    messages.success(request, 'Removal request approved. The QR code has been deactivated; Staff may now upload a new one.')
+    return redirect('dashboard:gcash_qr_admin')
+
+
+@admin_required
+@require_POST
+def gcash_qr_request_reject(request, pk):
+    """Admin rejects a Staff removal request: the existing QR stays active
+    and locked."""
+    req = get_object_or_404(GCashQRRemovalRequest, pk=pk, status=GCashQRRemovalRequest.STATUS_PENDING)
+    qr = req.qr_code
+    decision_reason = request.POST.get('decision_reason', '').strip()
+
+    req.status = GCashQRRemovalRequest.STATUS_REJECTED
+    req.decided_by = request.user
+    req.decision_reason = decision_reason
+    req.decided_at = timezone.now()
+    req.save(update_fields=['status', 'decided_by', 'decision_reason', 'decided_at'])
+
+    qr.status = GCashQRCode.STATUS_REMOVAL_REJECTED
+    qr.save(update_fields=['status'])
+
+    log_activity(request, 'status_change', 'Rejected GCash QR removal request — QR remains active and locked',
+                 resource='GCashQRCode', resource_label=f'QR #{qr.pk}',
+                 previous_value='Removal Request Pending', new_value='Removal Rejected')
+    messages.success(request, 'Removal request rejected. The current QR code remains active and locked.')
+    return redirect('dashboard:gcash_qr_admin')
+
+
+@admin_required
+@require_POST
+def gcash_qr_admin_upload(request):
+    """Admin override: directly upload the first/replacement QR code when
+    there's no active one yet (no Staff confirmation step needed)."""
+    f = request.FILES.get('image')
+    error = _qr_validate_image(f)
+    if error:
+        messages.error(request, error)
+        return redirect('dashboard:gcash_qr_admin')
+
+    new_qr = GCashQRCode.objects.create(
+        image=f, status=GCashQRCode.STATUS_ACTIVE_LOCKED, uploaded_by=request.user,
+        confirmed_at=timezone.now(),
+        account_name=request.POST.get('account_name', '').strip(),
+        account_number=request.POST.get('account_number', '').strip(),
+    )
+    log_activity(request, 'create', 'Uploaded GCash QR code directly (Admin)',
+                 resource='GCashQRCode', resource_label=f'QR #{new_qr.pk}')
+    messages.success(request, 'GCash QR code uploaded and is now active.')
+    return redirect('dashboard:gcash_qr_admin')
+
+
+@admin_required
+@require_POST
+def gcash_qr_admin_update_details(request, pk):
+    """Admin-only: update the account name/number shown alongside the
+    currently active QR code, without touching the QR image itself."""
+    qr = get_object_or_404(GCashQRCode, pk=pk)
+    qr.account_name = request.POST.get('account_name', '').strip()
+    qr.account_number = request.POST.get('account_number', '').strip()
+    qr.save(update_fields=['account_name', 'account_number'])
+    log_activity(request, 'update', 'Updated GCash account name/number shown at checkout',
+                 resource='GCashQRCode', resource_label=f'QR #{qr.pk}')
+    messages.success(request, 'Account details updated.')
+    return redirect('dashboard:gcash_qr_admin')
+
+
+@admin_required
+@require_POST
+def gcash_qr_admin_replace(request, pk):
+    """Admin override: directly replace the active QR code, bypassing the
+    Staff confirm/removal-request workflow entirely."""
+    qr = get_object_or_404(GCashQRCode, pk=pk)
+    f = request.FILES.get('image')
+    error = _qr_validate_image(f)
+    if error:
+        messages.error(request, error)
+        return redirect('dashboard:gcash_qr_admin')
+
+    qr.status = GCashQRCode.STATUS_INACTIVE
+    qr.deactivated_at = timezone.now()
+    qr.save(update_fields=['status', 'deactivated_at'])
+
+    new_qr = GCashQRCode.objects.create(
+        image=f, status=GCashQRCode.STATUS_ACTIVE_LOCKED, uploaded_by=request.user,
+        confirmed_at=timezone.now(),
+        account_name=request.POST.get('account_name', '').strip(),
+        account_number=request.POST.get('account_number', '').strip(),
+    )
+    log_activity(request, 'update', f'Replaced GCash QR code directly (Admin override), old QR #{qr.pk} deactivated',
+                 resource='GCashQRCode', resource_label=f'QR #{new_qr.pk}')
+    messages.success(request, 'GCash QR code replaced.')
+    return redirect('dashboard:gcash_qr_admin')
+
+
+@admin_required
+@require_POST
+def gcash_qr_admin_remove(request, pk):
+    """Admin override: deactivate the active QR code directly, with no
+    replacement uploaded yet. Staff can then upload a new one."""
+    qr = get_object_or_404(GCashQRCode, pk=pk)
+    qr.status = GCashQRCode.STATUS_INACTIVE
+    qr.deactivated_at = timezone.now()
+    qr.save(update_fields=['status', 'deactivated_at'])
+    log_activity(request, 'delete', 'Removed active GCash QR code directly (Admin override)',
+                 resource='GCashQRCode', resource_label=f'QR #{qr.pk}',
+                 previous_value='Active & Locked', new_value='Inactive')
+    messages.success(request, 'GCash QR code removed. Staff may now upload a new one.')
+    return redirect('dashboard:gcash_qr_admin')

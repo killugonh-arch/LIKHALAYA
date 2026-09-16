@@ -261,6 +261,27 @@
   .od-status-form label { font-size: 12px; font-weight: 600; color: #6b6558; margin: 16px 0 6px; display: block; }
   body.dark-mode .od-status-form label { color: var(--dm-text-dim); }
 
+  /* Task-based action buttons */
+  .od-task-actions { padding: 4px 24px 24px; border-top: 1px solid #f0ede8; display: flex; flex-direction: column; gap: 10px; }
+  body.dark-mode .od-task-actions { border-color: var(--dm-border); }
+  .od-task-hint { font-size: 12.5px; color: #8a8377; line-height: 1.5; margin: 12px 0 2px; }
+  body.dark-mode .od-task-hint { color: var(--dm-text-mute); }
+  .od-courier-form { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .od-courier-badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px;
+    color: #2b6cb0; background: #e8f0fe; padding: 5px 10px; border-radius: 8px; font-weight: 600;
+  }
+  body.dark-mode .od-courier-badge { background: rgba(79,169,232,.15); color: #7cbdf0; }
+  .od-proof-thumb { border-radius: 10px; border: 1px solid #ece7dd; width: 100%; max-height: 180px; object-fit: cover; }
+  body.dark-mode .od-proof-thumb { border-color: var(--dm-border); }
+  .od-cancel-btn {
+    width: 100%; background: none; border: 1px solid #f0c2c2; color: #b02a2a;
+    border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 600; margin-top: 4px;
+  }
+  .od-cancel-btn:hover { background: #fdeaea; }
+  body.dark-mode .od-cancel-btn { border-color: rgba(255,107,107,.3); color: #ff9494; }
+  body.dark-mode .od-cancel-btn:hover { background: rgba(255,107,107,.1); }
+
   @media print {
     .no-print { display: none !important; }
     .od-grid { display: block; }
@@ -335,13 +356,15 @@
               <tr>
                 <td>
                   <div class="d-flex align-items-center gap-3">
-                    {% if item.product and item.product.image %}
+                    {% if item.design and item.design.image %}
+                      <img src="{{ item.design.image.url }}" class="od-thumb" alt="{{ item.product_name }}">
+                    {% elif item.product and item.product.image %}
                       <img src="{{ item.product.image.url }}" class="od-thumb" alt="{{ item.product_name }}">
                     {% else %}
                       <div class="od-thumb-placeholder"><i class="fas fa-image"></i></div>
                     {% endif %}
                     <div>
-                      <div class="od-item-name">{{ item.product_name }}{% if item.size_display %}<span class="od-size-badge">{{ item.size_display }}</span>{% endif %}</div>
+                      <div class="od-item-name">{{ item.product_name }}{% if item.size_display %}<span class="od-size-badge">{{ item.size_display }}</span>{% endif %}{% if item.design_name %}<span class="od-size-badge">{{ item.design_name }}</span>{% endif %}</div>
                       {% if item.product %}<div class="od-item-sub">SKU: {{ item.product.pk }}</div>{% endif %}
                     </div>
                   </div>
@@ -505,16 +528,57 @@
           </div>
           {% endif %}
 
-          <form method="post" class="od-status-form">
-            {% csrf_token %}
-            <label for="statusSelect">Change Status</label>
-            <select name="status" id="statusSelect" class="form-select form-select-sm mb-3">
-              {% for s, l in status_choices %}
-              <option value="{{ s }}" {% if s == order.status %}selected{% endif %}>{{ l }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="od-btn od-btn-primary w-100"><i class="fas fa-sync"></i>Update Status</button>
-          </form>
+          <div class="od-task-actions">
+            {% if order.status == 'pending' %}
+            <div class="od-task-hint">This order is waiting to be prepared. Starting processing is the only way to move it forward.</div>
+            <form method="post" action="{% url 'dashboard:order_start_processing' order.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="od-btn od-btn-primary w-100"><i class="fas fa-play"></i>Start Processing</button>
+            </form>
+
+            {% elif order.status == 'processing' %}
+            <div class="od-task-hint">Once everything is packed and ready to go out for delivery, confirm it below.</div>
+            <form method="post" action="{% url 'dashboard:order_mark_ready' order.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="od-btn od-btn-primary w-100"><i class="fas fa-box-check"></i>Mark Ready for Delivery</button>
+            </form>
+
+            {% elif order.status == 'confirmed' %}
+            <div class="od-task-hint">Assign one of our couriers below. The order becomes <strong>Shipped</strong> automatically once the courier confirms pickup with a photo — no manual status change needed here.</div>
+            <form method="post" action="{% url 'dashboard:order_assign_courier' order.pk %}" class="od-courier-form">
+              {% csrf_token %}
+              <select name="courier_id" class="form-select form-select-sm">
+                <option value="">— Unassigned —</option>
+                {% for c in couriers %}
+                <option value="{{ c.pk }}" {% if order.assigned_courier_id == c.pk %}selected{% endif %}>{{ c.get_full_name|default:c.username }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="od-btn od-btn-secondary" style="white-space:nowrap;"><i class="fas fa-user-check"></i>Assign</button>
+            </form>
+            {% if order.assigned_courier %}
+            <span class="od-courier-badge"><i class="fas fa-truck-fast"></i>Waiting for {{ order.assigned_courier.get_full_name|default:order.assigned_courier.username }} to confirm pickup</span>
+            {% endif %}
+
+            {% elif order.status == 'shipped' %}
+            <div class="od-task-hint">Picked up by {{ order.assigned_courier.get_full_name|default:order.assigned_courier.username|default:"the courier" }} on {{ order.pickup_confirmed_at|date:"M d, Y \a\t H:i" }}. This order becomes <strong>Delivered</strong> automatically once the courier confirms delivery with a photo.</div>
+            {% if order.pickup_proof %}
+            <img src="{{ order.pickup_proof.url }}" alt="Pickup proof" class="od-proof-thumb">
+            {% endif %}
+
+            {% elif order.status == 'delivered' %}
+            <div class="od-task-hint">Delivered on {{ order.delivery_confirmed_at|date:"M d, Y \a\t H:i" }}. This order is complete.</div>
+            {% if order.delivery_proof %}
+            <img src="{{ order.delivery_proof.url }}" alt="Delivery proof" class="od-proof-thumb">
+            {% endif %}
+            {% endif %}
+
+            {% if order.status not in 'shipped,delivered,cancelled' %}
+            <form method="post" action="{% url 'dashboard:order_cancel' order.pk %}" onsubmit="return confirm('Cancel order {{ order.order_number }}? Stock will be restored.');">
+              {% csrf_token %}
+              <button type="submit" class="od-cancel-btn"><i class="fas fa-ban"></i>&nbsp;Cancel Order</button>
+            </form>
+            {% endif %}
+          </div>
         </div>
 
         <!-- GCash Verification Image -->

@@ -7,8 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-likhalaya-pdl-marketplace-change-in-production-2026'
 
 DEBUG = True
-
-ALLOWED_HOSTS = ['10.178.80.208', '127.0.0.1', 'localhost', '192.168.1.7']
+ALLOWED_HOSTS = ['10.178.80.208', '127.0.0.1', 'localhost', '192.168.1.7', '192.168.254.139', '192.168.254.160']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -43,27 +42,27 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'likhalaya_project.urls'
 
+# This is the TEMPLATES section in your settings.py
+# Replace your existing TEMPLATES configuration with this:
+# This is the TEMPLATES section in your settings.py
+# Replace your existing TEMPLATES configuration with this:
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'likhalaya_project.context_processors.global_context',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'store.context_processors.cart_count',
-                'store.context_processors.categories_ctx',
-                'dashboard.context_processors.dashboard_notifications',
-                'orders.context_processors.customer_notifications',
+                'likhalaya_project.context_processors.global_context',
             ],
         },
     },
 ]
-
 WSGI_APPLICATION = 'likhalaya_project.wsgi.application'
 
 DATABASES = {
@@ -90,6 +89,11 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
+
+# ── GCash dynamic QR generation (orders/gcash_qr_gen.py) ──
+# Set these via environment variables — never commit real account details.
+GCASH_ACCOUNT_NAME = os.environ.get('GCASH_ACCOUNT_NAME', 'Deniel Bryan Perea')
+GCASH_ACCOUNT_NUMBER = os.environ.get('GCASH_ACCOUNT_NUMBER', '09751548542')
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

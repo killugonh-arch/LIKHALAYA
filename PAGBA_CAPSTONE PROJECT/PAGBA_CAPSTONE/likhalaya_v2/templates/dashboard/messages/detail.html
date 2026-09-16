@@ -9,18 +9,19 @@
   <span class="sep">/</span><span class="current">Detail</span>
 </div>
 <div class="d-flex justify-content-between mb-4">
-  <h4 class="fw-bold mb-0" style="color:var(--teal);">Message Detail</h4>
+  <h4 class="fw-bold mb-0" style="color:var(--teal);">Request Detail</h4>
   <a href="{% url 'dashboard:message_list' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
 </div>
 
 <div class="row justify-content-center">
   <div class="col-lg-8">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-white border-0 py-3 px-4">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
           <div>
+            <span class="badge bg-light text-dark border mb-1">{{ message.get_inquiry_type_display }}</span>
             <h5 class="fw-bold mb-1">{{ message.subject }}</h5>
-            <div class="text-muted small">From: <strong>{{ message.name }}</strong> &lt;{{ message.email }}&gt;</div>
+            <div class="text-muted small">From: <strong>{{ message.name }}</strong> &lt;{{ message.email }}&gt;{% if message.phone %} &middot; {{ message.phone }}{% endif %}</div>
             <div class="text-muted small">{{ message.created_at|date:"F d, Y \a\t H:i" }}</div>
           </div>
           <span class="badge {% if message.is_read %}bg-secondary{% else %}bg-success{% endif %}">
@@ -30,6 +31,74 @@
       </div>
       <div class="card-body px-4 py-4">
         <div style="white-space:pre-wrap;line-height:1.8;color:var(--dm-text,#333);">{{ message.message }}</div>
+
+        {% if message.product or message.order or message.order_number_ref %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Product / Order Reference</h6>
+        {% if message.product %}
+        <div class="small mb-1"><strong>Product:</strong> {{ message.product.name }}</div>
+        {% endif %}
+        {% if message.order %}
+        <div class="small mb-1"><strong>Order:</strong> {{ message.order.order_number }}</div>
+        {% elif message.order_number_ref %}
+        <div class="small mb-1"><strong>Order Number (as entered):</strong> {{ message.order_number_ref }}</div>
+        {% endif %}
+        {% endif %}
+
+        {% if message.item_name or message.quantity %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Item Details</h6>
+        {% if message.item_name %}<div class="small mb-1"><strong>Item Name:</strong> {{ message.item_name }}</div>{% endif %}
+        {% if message.quantity %}<div class="small mb-1"><strong>Quantity:</strong> {{ message.quantity }}</div>{% endif %}
+        {% endif %}
+
+        {% if message.inquiry_type == 'custom_order' %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Custom Order Details</h6>
+        {% if message.customization_request %}<div class="small mb-1"><strong>Customization Request:</strong> {{ message.customization_request }}</div>{% endif %}
+        {% if message.preferred_materials %}<div class="small mb-1"><strong>Preferred Materials:</strong> {{ message.preferred_materials }}</div>{% endif %}
+        {% if message.target_budget %}<div class="small mb-1"><strong>Target Budget:</strong> {{ message.target_budget }}</div>{% endif %}
+        {% if message.preferred_date %}<div class="small mb-1"><strong>Preferred Date:</strong> {{ message.preferred_date }}</div>{% endif %}
+        {% if message.reference_image %}
+        <div class="small mb-1"><strong>Reference Image:</strong></div>
+        <a href="{{ message.reference_image.url }}" target="_blank" rel="noopener">
+          <img src="{{ message.reference_image.url }}" alt="Reference image" style="max-width:220px;border-radius:10px;border:1px solid #eee;">
+        </a>
+        {% endif %}
+        {% endif %}
+
+        {% if message.organization_name or message.partnership_type or message.partnership_details %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Organization / Partnership</h6>
+        {% if message.organization_name %}<div class="small mb-1"><strong>Organization:</strong> {{ message.organization_name }}</div>{% endif %}
+        {% if message.partnership_type %}<div class="small mb-1"><strong>Partnership Type:</strong> {{ message.get_partnership_type_display }}</div>{% endif %}
+        {% if message.partnership_details %}<div class="small mb-1"><strong>Details:</strong> {{ message.partnership_details }}</div>{% endif %}
+        {% endif %}
+
+        {% if message.materials_condition %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Donation Details</h6>
+        <div class="small mb-1"><strong>Materials Condition:</strong> {{ message.get_materials_condition_display }}</div>
+        {% endif %}
+
+        {% if message.feedback_type or message.related_product %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Feedback</h6>
+        {% if message.feedback_type %}<div class="small mb-1"><strong>Feedback Type:</strong> {{ message.get_feedback_type_display }}</div>{% endif %}
+        {% if message.related_product %}<div class="small mb-1"><strong>Related Product:</strong> {{ message.related_product }}</div>{% endif %}
+        {% endif %}
+
+        {% if message.concern_type %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Concern</h6>
+        <div class="small mb-1"><strong>Concern Type:</strong> {{ message.get_concern_type_display }}</div>
+        {% endif %}
+
+        {% if message.additional_details %}
+        <hr>
+        <h6 class="fw-bold small text-uppercase" style="color:var(--teal);">Additional Details</h6>
+        <div class="small" style="white-space:pre-wrap;">{{ message.additional_details }}</div>
+        {% endif %}
       </div>
       <div class="card-footer bg-white border-0 px-4 py-3 d-flex justify-content-end gap-2">
         <a href="https://mail.google.com/mail/?view=cm&fs=1&to={{ message.email|urlencode }}"
@@ -40,6 +109,32 @@
           <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this message?')">
             <i class="fas fa-trash me-1"></i>Delete
           </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body px-4 py-3">
+        <h6 class="fw-bold small text-uppercase mb-3" style="color:var(--teal);">Status &amp; Staff Notes</h6>
+        <form method="post">
+          {% csrf_token %}
+          <div class="row g-2 align-items-end">
+            <div class="col-sm-4">
+              <label class="form-label small fw-semibold">Status</label>
+              <select name="status" class="form-select form-select-sm">
+                {% for value, label in message.STATUS_CHOICES %}
+                <option value="{{ value }}" {% if message.status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-8">
+              <label class="form-label small fw-semibold">Staff Notes (internal only)</label>
+              <input type="text" name="staff_notes" class="form-control form-control-sm" value="{{ message.staff_notes }}">
+            </div>
+            <div class="col-12 text-end mt-2">
+              <button type="submit" class="btn btn-sm btn-teal">Save</button>
+            </div>
+          </div>
         </form>
       </div>
     </div>

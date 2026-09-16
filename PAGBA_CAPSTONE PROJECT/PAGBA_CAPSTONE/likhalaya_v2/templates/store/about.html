@@ -23,15 +23,28 @@
 .video-card .video-frame video,
 .video-card .video-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
 .video-card .video-body { padding: 18px 20px; }
+
+@media (max-width: 767.98px) {
+  .mission-card { padding: 22px 18px; border-radius: 14px; }
+  .mission-card h5 { font-size: 15px; }
+  .mission-card p { font-size: 13px; line-height: 1.7 !important; }
+  h3.fw-bold { font-size: clamp(19px, 5vw, 24px) !important; }
+  .person-card { padding: 20px 14px; }
+  .person-avatar, .person-initials { width: 64px; height: 64px; font-size: 22px; }
+  .stat-number { font-size: 30px; }
+  .video-card .video-body { padding: 12px 14px; }
+  .video-card .video-body h6 { font-size: 13px; }
+  .row.g-3 .overflow-hidden.rounded-4 { height: 110px !important; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Hero -->
-{% include 'partials/page_hero.html' with crumb='About' icon='fa-circle-info' title='About Likhalaya' subtitle='Discover the story, purpose, and people behind Likhalaya.' %}
+<!-- Header -->
+{% include 'partials/compact_page_header.html' with eyebrow='About Us' eyebrow_icon='fa-circle-info' title='About Likhalaya' subtitle='Discover the story, purpose, and people behind Likhalaya.' %}
 
 <!-- Mission & Vision -->
-<div class="container py-5">
+<div class="container pt-4 pb-5">
   <div class="row g-4 mb-5 align-items-stretch">
     <div class="col-md-6">
       <div class="mission-card">
@@ -133,9 +146,9 @@
       <div class="video-card">
         <div class="video-frame">
           {% if video.video_url %}
-          <iframe src="{{ video.embed_url }}" allowfullscreen loading="lazy"></iframe>
+          <iframe src="{{ video.embed_url }}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
           {% elif video.video_file %}
-          <video controls {% if video.thumbnail %}poster="{{ video.thumbnail.url }}"{% endif %}>
+          <video autoplay muted loop playsinline {% if video.thumbnail %}poster="{{ video.thumbnail.url }}"{% endif %}>
             <source src="{{ video.video_file.url }}" type="video/mp4">
           </video>
           {% endif %}

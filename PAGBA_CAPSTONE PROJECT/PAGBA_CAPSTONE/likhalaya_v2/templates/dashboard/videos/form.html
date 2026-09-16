@@ -75,7 +75,7 @@
 <div class="pform-header">
   <div>
     <h4>{{ title }}</h4>
-    <p>Videos appear on the About page. Use a YouTube/Facebook link, or upload a file if you don't have one.</p>
+    <p>Videos appear on the About page (and Home, if featured). Use a YouTube/Facebook link, or upload a file if you don't have one.</p>
   </div>
   <a href="{% url 'dashboard:video_list' %}" class="btn-back text-decoration-none">
     <i class="fas fa-arrow-left me-1"></i>Back to Videos
@@ -154,6 +154,13 @@
               <span class="desc d-block">Visible on the About page</span>
             </span>
             {{ form.is_active }}
+          </label>
+          <label class="pform-toggle mt-3" for="{{ form.show_on_home.id_for_label }}">
+            <span>
+              <span class="title d-block">Show on Home</span>
+              <span class="desc d-block">Feature this video on the Home page too (max 2 shown there)</span>
+            </span>
+            {{ form.show_on_home }}
           </label>
         </div>
         <div class="pform-actions">
